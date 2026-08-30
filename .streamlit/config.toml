@@ -5,7 +5,8 @@ primaryColor = "#1DB954"
 backgroundColor = "#FAF6EC"
 secondaryBackgroundColor = "#FFFFFF"
 textColor = "#141414"
-font = "sans serif"
+font = "Figtree:https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap"
+headingFont = "Fredoka:https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap"
 
 [browser]
 gatherUsageStats = false
