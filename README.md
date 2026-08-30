@@ -28,6 +28,23 @@ O **Gems Finder** é um produto de dados desenvolvido para análises avançadas 
 * **🎧 Modo Híbrido / Conexão Spotify:** Arquitetura flexível que permite tanto a exploração pública por *vibes* quanto simulações de autenticação via API para perfis de teste.
 * **📈 Dashboards Analíticos:** Métricas de precisão, cobertura de catálogo e identificação de artistas independentes.
 
+## 🗂️ Estrutura do Repositório
+A organização dos arquivos e pastas do projeto segue o padrão de engenharia de dados:
+
+```text
+gems-finder/
+├── data/
+│   ├── raw/                  # Dataset original
+│   └── processed/            # Dados tratados
+├── notebooks/
+│   └── gems_finder_eda.ipynb # Notebook principal de limpeza dos dados, exploração, métricas e modelo
+├── assets/                   # Imagens e recursos visuais para a documentação
+├── app.py                    # Código do protótipo navegável
+├── requirements.txt          # Dependências do projeto (bibliotecas Python)
+├── .gitignore                # Arquivos ignorados pelo Git
+└── README.md                 # Documentação principal
+```
+
 ## 🛠️ Tecnologias Utilizadas
 * **Python** (Pandas, NumPy, Scikit-Learn)
 * **Spotify Web API** (Integração OAuth e metadados)
