@@ -2,6 +2,10 @@
 
 > Garimpando faixas underground e subestimadas no catálogo do Spotify através de inteligência de dados e perfis sonoros (*moods*).
 
+<p align="center">
+  <img src="assets/logo-gems-finder.svg" width="520" alt="Gems Finder">
+</p>
+
 ---
 
 ## 🏛️ Contexto Acadêmico

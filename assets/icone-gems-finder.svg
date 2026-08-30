@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Gems Finder">
+<title>Gems Finder</title>
+<rect width="512" height="512" rx="118" fill="#1DB954"/>
+<rect x="10" y="10" width="492" height="492" rx="110" fill="none" stroke="#141414" stroke-width="16"/>
+<g transform="translate(108,88) scale(5.1)">
+  <path d="M9 38c-5 2-6 6-5 9M47 38c5 2 6 6 5 9" stroke="#141414" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+  <circle cx="4" cy="48" r="3.2" fill="#141414"/><circle cx="52" cy="48" r="3.2" fill="#141414"/>
+  <path d="M28 4 8 17l6 34h28l6-34L28 4z" fill="#CFF25E" stroke="#141414" stroke-width="2.8" stroke-linejoin="round"/>
+  <path d="M28 4 8 17h40L28 4z" fill="#E4F8A8" stroke="#141414" stroke-width="1.9" stroke-linejoin="round"/>
+  <circle cx="21" cy="29" r="2.9" fill="#141414"/><circle cx="35" cy="29" r="2.9" fill="#141414"/>
+  <path d="M21 37c4 5 10 5 14 0" stroke="#141414" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+  <path d="M20 55v6M36 55v6" stroke="#141414" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M15 62h9M32 62h9" stroke="#141414" stroke-width="2.6" stroke-linecap="round"/>
+</g>
+</svg>
