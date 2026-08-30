@@ -30,5 +30,4 @@ O **Gems Finder** é um produto de dados desenvolvido para análises avançadas 
 
 ## 🛠️ Tecnologias Utilizadas
 * **Python** (Pandas, NumPy, Scikit-Learn)
-* **Streamlit** (Interface Web Interativa)
 * **Spotify Web API** (Integração OAuth e metadados)
