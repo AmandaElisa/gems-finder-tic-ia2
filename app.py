@@ -552,18 +552,23 @@ hr{border-color:rgba(20,20,20,.15);}
 .gf-status{font-size:13.5px;color:var(--mute);margin:0 0 12px;}
 .gf-status b{color:var(--tinta);font-weight:800;}
 
-/* ---------- vibes ---------- */
-.gf-vibe{border:2px solid var(--tinta);border-bottom:0;border-radius:20px 20px 0 0;
-  padding:14px 12px 8px;text-align:center;box-shadow:4px 0 0 var(--tinta);}
-.gf-vibe strong{display:block;font-family:var(--d);font-size:17px;font-weight:600;margin-top:6px;}
+/* ---------- vibes (o card inteiro é o botão) ---------- */
+.gf-vibe{border:2px solid var(--tinta);border-radius:20px;padding:16px 14px 14px;
+  text-align:center;box-shadow:4px 4px 0 var(--tinta);transition:.16s;background:#fff;}
+.gf-vibe strong{display:block;font-family:var(--d) !important;font-size:17px;
+  font-weight:600;margin-top:8px;}
 .gf-vibe span{display:block;font-size:12.5px;color:var(--mute);line-height:1.35;margin-top:2px;}
-[class*="st-key-btnvibe-"] button{width:100%;border-radius:0 0 18px 18px !important;
-  border-top:0 !important;box-shadow:4px 4px 0 var(--tinta) !important;}
-[class*="st-key-btnvibe-"] button:hover{transform:none;}
-.st-key-btnvibe-foco-on button{background:#B3BCF7 !important;color:var(--tinta) !important;}
-.st-key-btnvibe-treino-on button{background:#F79BD8 !important;color:var(--tinta) !important;}
-.st-key-btnvibe-chill-on button{background:#CFF25E !important;color:var(--tinta) !important;}
-.st-key-btnvibe-melancolia-on button{background:#9AD6E8 !important;color:var(--tinta) !important;}
+.gf-vibe.on{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--tinta);}
+.gf-vibe .gf-mascote{margin:0 auto;}
+[class*="st-key-vibecard-"]{position:relative;}
+[class*="st-key-vibecard-"]:hover .gf-vibe{transform:translate(-2px,-2px);
+  box-shadow:6px 6px 0 var(--tinta);}
+[class*="st-key-vibecard-"] [data-testid="stElementContainer"]:has(.stButton){
+  position:absolute;inset:0;z-index:2;margin:0;}
+[class*="st-key-vibecard-"] .stButton, [class*="st-key-vibecard-"] .stButton > button{
+  width:100%;height:100%;}
+[class*="st-key-vibecard-"] .stButton > button{opacity:0;cursor:pointer;border-radius:20px;
+  box-shadow:none;}
 
 /* ---------- profundidade ---------- */
 .gf-num{font-family:var(--d);font-size:44px;font-weight:700;line-height:1;}
@@ -674,6 +679,14 @@ hr{border-color:rgba(20,20,20,.15);}
 .gf-mascote .eye{animation:gfBlink 5s infinite;}
 .gf-mascote .eye.b{animation-delay:.15s;}
 @keyframes gfBlink{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}
+
+/* fontes por cima do CSS interno do streamlit (especificidade + !important) */
+.gf-title,.gf-step h3,.gf-sec h3,.gf-bubble,.gf-num,.gf-met strong,
+.gf-gtop b,.gf-gtop .mt strong,.gf-empty p,.gf-who strong,.gf-avatar,
+.stButton > button{font-family:var(--d) !important;}
+.gf-lede,.gf-help,.gf-status,.gf-vibe span,.gf-attr,.gf-why,.gf-meta,.gf-badge,
+.gf-axis,.gf-tops,.gf-rail-foot,.gf-perm li,.gf-who span,.gf-num span{
+  font-family:var(--f) !important;}
 
 @media (max-width:1000px){
   .gf-title{font-size:29px;}
@@ -844,18 +857,18 @@ def seletor_modo() -> str:
 
 
 def _selecao_vibe() -> None:
-    """Os 4 cards de vibe, um por coluna."""
+    """Os 4 cards de vibe, um por coluna — o card inteiro é clicável."""
     for coluna, (chave, vibe) in zip(st.columns(4), VIBES.items()):
         with coluna:
             escolhida = st.session_state.vibe == chave
+            classe = "gf-vibe on" if escolhida else "gf-vibe"
             fundo = vibe["cor"] if escolhida else "#fff"
-            bloco(f'<div class="gf-vibe" style="background:{fundo}">'
-                  f'{mascote(vibe["cor"], vibe["humor"], 56)}<strong>{vibe["nome"]}</strong>'
-                  f'<span>{vibe["desc"]}</span></div>')
-            sufixo = "-on" if escolhida else ""
-            with container_com_chave(f"btnvibe-{chave}{sufixo}"):
-                if st.button("Escolhida ✓" if escolhida else "Escolher",
-                             key=f"btn_vibe_{chave}"):
+            with container_com_chave(f"vibecard-{chave}"):
+                bloco(f'<div class="{classe}" style="background:{fundo}">'
+                      f'{mascote(vibe["cor"], vibe["humor"], 56)}<strong>{vibe["nome"]}</strong>'
+                      f'<span>{vibe["desc"]}</span></div>')
+                # botão invisível cobrindo o card (o rótulo fica pro leitor de tela)
+                if st.button(vibe["nome"], key=f"btn_vibe_{chave}"):
                     st.session_state.vibe = chave
                     st.rerun()
 
