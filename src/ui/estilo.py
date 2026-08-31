@@ -57,6 +57,9 @@ hr{border-color:rgba(20,20,20,.15);}
 .gf-rail-foot{font-size:12px;color:var(--mute);line-height:1.7;
   border-top:2px dashed rgba(20,20,20,.2);padding-top:14px;margin-top:22px;}
 .gf-rail-foot b{color:var(--tinta);}
+[data-testid="stSidebar"] .gf-rail-foot a{color:var(--mute);text-decoration:underline;
+  text-decoration-thickness:1px;text-underline-offset:2px;transition:.14s;}
+[data-testid="stSidebar"] .gf-rail-foot a:hover{color:var(--tinta);}
 
 /* ---------- cartões sticker ---------- */
 [class*="st-key-cartao-"]{
@@ -84,8 +87,11 @@ hr{border-color:rgba(20,20,20,.15);}
 
 /* ---------- passos ---------- */
 .gf-step{display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+/* flex:none + nowrap pra o selo não ser comprimido pelo título e quebrar
+   "PASSO 2" em duas linhas nas telas estreitas */
 .gf-step b{font-size:11px;font-weight:800;letter-spacing:.08em;background:var(--lima);
-  border:2px solid var(--tinta);border-radius:99px;padding:2px 10px;}
+  border:2px solid var(--tinta);border-radius:99px;padding:2px 10px;
+  flex:none;white-space:nowrap;}
 .gf-step h3{font-family:var(--d);font-size:19px;font-weight:600;margin:0;}
 .gf-help{color:var(--mute);font-size:13.5px;margin:0 0 16px;}
 .gf-help b{color:var(--tinta);}
@@ -274,6 +280,15 @@ hr{border-color:rgba(20,20,20,.15);}
 @media (max-width:1000px){
   .gf-title{font-size:29px;}
   .gf-metrics{grid-template-columns:1fr 1fr;}
+}
+/* em tela estreita os três modos não caem numa linha e a pílula quebrava no
+   meio; vira uma lista vertical de largura cheia, que lê como controle */
+@media (max-width:640px){
+  [data-testid="stButtonGroup"]{flex-direction:column;align-items:stretch;
+    width:100%;border-radius:20px;flex-wrap:nowrap;}
+  [data-testid="stButtonGroup"] button{width:100%;justify-content:center;
+    padding:10px 14px !important;}
+  .gf-metrics{grid-template-columns:1fr;}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
 </style>
