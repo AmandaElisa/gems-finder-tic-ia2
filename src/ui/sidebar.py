@@ -26,7 +26,6 @@ def barra_lateral(catalogo: pd.DataFrame, artistas: pd.DataFrame) -> str:
               '<b>Integrantes:</b><br>'
               'Amanda Elisa de Oliveira Carvalho<br>'
               'Arthur de Melo Garcia<br>'
-              'Eric Luiz Rodrigues de França<br>'
               'Maria Carolina Martins Frota<br>'
               'Samara Letícia Alves dos Santos<br>'
               'Wingrid da Costa Silva</div>')
