@@ -299,6 +299,20 @@ hr{border-color:rgba(20,20,20,.15);}
   [data-testid="stButtonGroup"] button p{font-size:11.5px !important;letter-spacing:0;}
   .gf-metrics{grid-template-columns:1fr;}
 }
+/* No touch o swipe basta e a barra fica escondida. Com mouse não há como
+   arrastar a tira, então expõe uma barra fininha — é a afordância que o
+   Material cobre com as setas laterais no desktop. */
+@media (max-width:640px) and (pointer:fine){
+  [data-testid="stButtonGroup"]{padding-bottom:2px;}
+  [data-testid="stButtonGroup"] > div{scrollbar-width:thin;
+    scrollbar-color:rgba(20,20,20,.4) transparent;padding-bottom:5px;}
+  [data-testid="stButtonGroup"] > div::-webkit-scrollbar{display:block;height:5px;}
+  [data-testid="stButtonGroup"] > div::-webkit-scrollbar-track{background:transparent;}
+  [data-testid="stButtonGroup"] > div::-webkit-scrollbar-thumb{
+    background:rgba(20,20,20,.4);border-radius:99px;}
+  [data-testid="stButtonGroup"] > div::-webkit-scrollbar-thumb:hover{
+    background:rgba(20,20,20,.65);}
+}
 @media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
 </style>
 """
