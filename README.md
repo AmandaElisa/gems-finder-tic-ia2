@@ -9,7 +9,7 @@
 ---
 
 ## 🏛️ Contexto Acadêmico
-* **Iniciativa:** Residência em IA – Turma 2
+* **Iniciativa:** Residência em IA – UnB – Turma 2
 * **Desafio:** Nano-Challenge: Spotify Data
 * **Grupo:** Grupo 9
 
