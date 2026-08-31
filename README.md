@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo-gems-finder.svg" width="520" alt="Gems Finder">
+  <img src="assets/icons_with_headset/logo-gems-finder.svg" width="520" alt="Gems Finder">
 </p>
 
 <h2 align="center">💎 Gems Finder</h2>
