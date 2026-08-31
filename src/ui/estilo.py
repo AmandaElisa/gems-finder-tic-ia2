@@ -38,6 +38,8 @@ hr{border-color:rgba(20,20,20,.15);}
 }
 [data-testid="stSidebar"] [role="radiogroup"] label:hover{transform:translate(-1px,-1px);}
 [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked){background:var(--lima);}
+[data-testid="stSidebar"] [role="radiogroup"] label p{font-family:var(--f) !important;
+  font-weight:700 !important;font-size:14.5px !important;}
 .gf-brand{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
 .gf-brand h1{font-family:var(--d);font-size:21px;font-weight:700;margin:0;}
 .gf-brand small{display:block;font-size:11.5px;color:var(--mute);font-weight:600;}
@@ -218,6 +220,11 @@ hr{border-color:rgba(20,20,20,.15);}
 .gf-mascote .eye{animation:gfBlink 5s infinite;}
 .gf-mascote .eye.b{animation-delay:.15s;}
 @keyframes gfBlink{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}
+
+/* corpo em Figtree também nos textos internos dos widgets (radio, select, slider…) */
+.stApp p, .stApp label, .stApp li, .stApp input, .stApp textarea,
+[data-baseweb="select"] div, [data-baseweb="tag"] span,
+[data-testid="stSlider"] div{font-family:var(--f) !important;}
 
 /* fontes por cima do CSS interno do streamlit (especificidade + !important) */
 .gf-title,.gf-step h3,.gf-sec h3,.gf-bubble,.gf-num,.gf-met strong,
