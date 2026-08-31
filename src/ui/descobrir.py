@@ -58,32 +58,24 @@ def _selecao_genero(catalogo: pd.DataFrame, generos: list[str]) -> None:
 
 
 def _selecao_artista(artistas: pd.DataFrame) -> None:
-    """Busca + chips de artistas de referência, com toggle e máximo de 3."""
+    """Chips de artistas de referência, com toggle e máximo de 3."""
     generos = dict(zip(artistas["artista"], artistas["genero"]))
-    busca = st.text_input("Buscar artista", placeholder="Buscar artista…",
-                          key="w_busca_art", label_visibility="collapsed")
-    filtro = busca.strip().lower()
-    visiveis = [nome for nome in artistas["artista"]
-                if filtro in nome.lower() or filtro in generos[nome].lower()]
     favoritos = st.session_state.favoritos
 
-    if not visiveis:
-        st.caption("Nenhum artista com esse nome no protótipo.")
-    else:
-        with container_com_chave("chips-artistas"):
-            for nome in visiveis:
-                escolhido = nome in favoritos
-                if st.button(f"{nome} :gray[{generos[nome]}]",
-                             key=f"chip_art_{nome}",
-                             type="primary" if escolhido else "secondary"):
-                    if escolhido:
-                        favoritos.remove(nome)
-                        st.rerun()
-                    elif len(favoritos) >= 3:
-                        st.toast("Máximo de 3 artistas", icon="✋")
-                    else:
-                        favoritos.append(nome)
-                        st.rerun()
+    with container_com_chave("chips-artistas"):
+        for nome in artistas["artista"]:
+            escolhido = nome in favoritos
+            if st.button(f"{nome} :gray[{generos[nome]}]",
+                         key=f"chip_art_{nome}",
+                         type="primary" if escolhido else "secondary"):
+                if escolhido:
+                    favoritos.remove(nome)
+                    st.rerun()
+                elif len(favoritos) >= 3:
+                    st.toast("Máximo de 3 artistas", icon="✋")
+                else:
+                    favoritos.append(nome)
+                    st.rerun()
 
     if favoritos:
         st.caption(f"{len(favoritos)} de 3 escolhidos: {', '.join(favoritos)}")

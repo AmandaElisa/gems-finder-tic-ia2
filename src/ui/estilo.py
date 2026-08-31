@@ -117,7 +117,6 @@ hr{border-color:rgba(20,20,20,.15);}
 [class*="st-key-chips-"] .stButton > button[kind="primary"],
 [class*="st-key-chips-"] .stButton > button[data-testid="stBaseButton-primary"]{
   background:var(--lima) !important;color:var(--tinta) !important;}
-.st-key-w_busca_art{max-width:340px;}
 
 /* ---------- profundidade ---------- */
 .gf-num{font-family:var(--d);font-size:44px;font-weight:700;line-height:1;}
