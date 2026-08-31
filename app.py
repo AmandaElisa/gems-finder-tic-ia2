@@ -20,9 +20,10 @@ from __future__ import annotations
 
 import streamlit as st
 
+from src import spotify
 from src.dados import PAGINAS, carregar_artistas, carregar_catalogo, listar_generos
 from src.ui.componentes import bloco
-from src.ui.conta import pagina_conta
+from src.ui.conta import pagina_conta, voltando_do_spotify
 from src.ui.descobrir import pagina_descobrir
 from src.ui.estado import iniciar_estado
 from src.ui.estilo import CSS
@@ -39,6 +40,11 @@ def main() -> None:
     artistas = carregar_artistas()
     generos = listar_generos(catalogo)
     iniciar_estado(generos)
+
+    # O Spotify devolve o usuário pra raiz do app; sem isso ele cairia no
+    # "Descobrir" e teria que clicar na aba pra ver o próprio perfil.
+    if spotify.config() and voltando_do_spotify():
+        st.session_state.w_nav = PAGINAS[1]
 
     pagina = barra_lateral(catalogo, artistas)
     if pagina == PAGINAS[0]:

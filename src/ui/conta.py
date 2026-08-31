@@ -35,6 +35,11 @@ def _conectar(email: str, quem: dict | None = None, token: str = "",
     st.rerun()
 
 
+def voltando_do_spotify() -> bool:
+    """True quando a URL traz o retorno do consentimento (?code= ou ?error=)."""
+    return bool(st.query_params.get("code") or st.query_params.get("error"))
+
+
 def _processar_callback(cfg: dict[str, str]) -> None:
     """Troca o ?code= devolvido pelo Spotify por token e monta a sessão real."""
     if st.session_state.conectado:
