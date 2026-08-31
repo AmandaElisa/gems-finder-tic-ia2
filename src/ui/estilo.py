@@ -254,7 +254,7 @@ hr{border-color:rgba(20,20,20,.15);}
 /* fontes por cima do CSS interno do streamlit (especificidade + !important) */
 .gf-title,.gf-step h3,.gf-sec h3,.gf-bubble,.gf-num,.gf-met strong,
 .gf-gtop b,.gf-gtop .mt strong,.gf-empty p,.gf-who strong,.gf-avatar,
-.stButton > button{font-family:var(--d) !important;}
+.stButton > button,.stButton > button p{font-family:var(--d) !important;}
 .gf-lede,.gf-help,.gf-status,.gf-vibe span,.gf-attr,.gf-why,.gf-meta,.gf-badge,
 .gf-axis,.gf-tops,.gf-rail-foot,.gf-perm li,.gf-who span,.gf-num span{
   font-family:var(--f) !important;}
