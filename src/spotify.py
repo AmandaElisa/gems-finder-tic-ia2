@@ -101,7 +101,7 @@ def criar_playlist(token: str, user_id: str, nome: str,
     As faixas do catálogo são fictícias (não existem no Spotify), então a
     playlist nasce vazia com as joias na descrição.
     """
-    descricao = ("Garimpada pelo Gems Finder (Residência em IA · UnB): "
+    descricao = ("Garimpada pelo Gems Finder (Residência em IA · UnB · Instituto ELDORADO): "
                  + " · ".join(f'{faixa["faixa"]} ({faixa["artista"]})'
                               for faixa in faixas))[:300]
     resposta = requests.post(

@@ -20,7 +20,7 @@ def barra_lateral(catalogo: pd.DataFrame, artistas: pd.DataFrame) -> str:
         bloco('<div class="gf-rail-foot"><b>114.000</b> faixas indexadas<br>'
               f'<b>{catalogo["genero"].nunique()}</b> gêneros · '
               f'<b>{len(artistas)}</b> artistas de referência<br><br>'
-              'Residência em IA · UnB<br>'
+              'Residência em IA · UnB · Instituto ELDORADO<br>'
               'Nano-Challenge: Spotify Data<br>'
               'Grupo 9<br><br>'
               '<b>Integrantes:</b><br>'
