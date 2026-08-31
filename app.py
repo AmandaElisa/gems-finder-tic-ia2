@@ -525,6 +525,8 @@ hr{border-color:rgba(20,20,20,.15);}
   background:#fff;border:2px solid var(--tinta);border-radius:22px;
   padding:20px 24px;box-shadow:5px 5px 0 var(--tinta);margin-bottom:22px;
 }
+/* respiro entre os elementos dentro dos cartões (o padrão vinha grudado) */
+[class*="st-key-cartao-"] > div[data-testid="stVerticalBlock"]{gap:16px;}
 [class*="st-key-gema-"]{
   background:#fff;border:2px solid var(--tinta);border-radius:20px;
   padding:14px 18px 4px;box-shadow:4px 4px 0 var(--tinta);margin-bottom:16px;
@@ -656,10 +658,20 @@ hr{border-color:rgba(20,20,20,.15);}
 [data-baseweb="tag"]{background:var(--lima) !important;color:var(--tinta) !important;
   border:2px solid var(--tinta) !important;border-radius:99px !important;font-weight:700;}
 [data-baseweb="tag"] span{color:var(--tinta) !important;}
-[data-testid="stSegmentedControl"] button{border:2px solid var(--tinta) !important;font-weight:700;}
-[data-testid="stSegmentedControl"] button[aria-checked="true"],
-[data-testid="stSegmentedControl"] button[data-testid="stBaseButton-segmented_controlActive"]{
-  background:var(--tinta) !important;color:#fff !important;}
+/* segmented control com o visual .seg do protótipo: pílula branca, item ativo preto */
+[data-testid="stButtonGroup"]{display:inline-flex;background:#fff;border:2px solid var(--tinta);
+  border-radius:99px;padding:4px;gap:4px;box-shadow:3px 3px 0 var(--tinta);flex-wrap:wrap;
+  width:auto;margin:2px 0 4px;}
+[data-testid="stButtonGroup"] button{border:0 !important;background:transparent !important;
+  border-radius:99px !important;padding:7px 20px !important;box-shadow:none !important;
+  color:var(--mute) !important;transition:.14s;}
+[data-testid="stButtonGroup"] button:hover{color:var(--tinta) !important;transform:none;}
+[data-testid="stButtonGroup"] button p{font-weight:700 !important;font-size:14px !important;
+  color:inherit !important;}
+[data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_controlActive"]{
+  background:var(--tinta) !important;}
+[data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_controlActive"] p{
+  color:#fff !important;}
 [data-testid="stSlider"] [role="slider"]{background:var(--rosa) !important;
   border:2px solid var(--tinta) !important;box-shadow:none !important;}
 [data-testid="stExpander"]{border:none !important;background:transparent !important;}
