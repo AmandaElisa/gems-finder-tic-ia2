@@ -285,16 +285,18 @@ hr{border-color:rgba(20,20,20,.15);}
    pílula no meio; mantém a cara de tabs comprimindo fonte e padding, e deixa
    correr no eixo x (sem barra visível) se ainda faltar espaço */
 @media (max-width:640px){
-  /* o flex que envolve os botões é um div interno do stButtonGroup, não ele
-     mesmo — é nele que o nowrap tem que entrar, senão a pílula parte no meio */
-  [data-testid="stButtonGroup"], [data-testid="stButtonGroup"] > div{
-    flex-wrap:nowrap !important;max-width:100%;overflow-x:auto;
-    scrollbar-width:none;-ms-overflow-style:none;}
-  [data-testid="stButtonGroup"]::-webkit-scrollbar,
+  /* Tabs roláveis no padrão do Material 3: uma linha só, e o que não couber se
+     alcança arrastando. O flex que envolve os botões é um div INTERNO do
+     stButtonGroup, não ele mesmo — o nowrap e o overflow vão nele. */
+  [data-testid="stButtonGroup"]{max-width:100%;}
+  [data-testid="stButtonGroup"] > div{
+    flex-wrap:nowrap !important;overflow-x:auto;max-width:100%;
+    -webkit-overflow-scrolling:touch;scroll-behavior:smooth;
+    scroll-snap-type:x proximity;scrollbar-width:none;-ms-overflow-style:none;}
   [data-testid="stButtonGroup"] > div::-webkit-scrollbar{display:none;}
-  [data-testid="stButtonGroup"] button{flex:none;padding:7px 12px !important;}
-  [data-testid="stButtonGroup"] button p{font-size:12px !important;
-    letter-spacing:-.01em;}
+  [data-testid="stButtonGroup"] button{flex:none;padding:6px 10px !important;
+    scroll-snap-align:center;}
+  [data-testid="stButtonGroup"] button p{font-size:11.5px !important;letter-spacing:0;}
   .gf-metrics{grid-template-columns:1fr;}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
