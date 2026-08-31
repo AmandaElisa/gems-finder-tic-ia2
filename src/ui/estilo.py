@@ -50,8 +50,10 @@ hr{border-color:rgba(20,20,20,.15);}
 .gf-brand h1{font-family:var(--d);font-size:21px;font-weight:700;margin:0;padding:0;
   line-height:1.18;}
 .gf-brand small{display:block;font-size:11.5px;color:var(--mute);font-weight:600;}
-.gf-nav-label{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);
-  font-weight:800;margin:14px 0 6px;}
+/* o seletor [data-testid="stMarkdownContainer"] p do streamlit vence .gf-nav-label
+   na especificidade e forçava 16px aqui; daí o !important no tamanho */
+[data-testid="stSidebar"] .gf-nav-label{font-size:12px !important;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--mute);font-weight:800;margin:14px 0 6px;}
 .gf-rail-foot{font-size:12px;color:var(--mute);line-height:1.7;
   border-top:2px dashed rgba(20,20,20,.2);padding-top:14px;margin-top:22px;}
 .gf-rail-foot b{color:var(--tinta);}
