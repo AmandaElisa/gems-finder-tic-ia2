@@ -1,11 +1,17 @@
-"""Página Minha conta — modo dos testadores, com OAuth simulado."""
+"""Página Minha conta — login com o Spotify.
+
+Modo REAL quando .streamlit/secrets.toml tem a seção [spotify]; senão cai no
+modo SIMULADO do protótipo (OAuth encenado, dados fictícios).
+"""
 
 from __future__ import annotations
 
 import time
 
+import requests
 import streamlit as st
 
+from src import spotify
 from src.dados import ETAPAS_OAUTH, PERFIL_USUARIO, PERMISSOES, TOPS, carregar_catalogo
 from src.recomendacao import email_valido, montar_resultado_conta, nome_do_email
 from src.tema import ROSA
@@ -15,8 +21,58 @@ from src.ui.mascote import mascote
 from src.ui.resultados import mostrar_resultados
 
 
-def _tela_login() -> None:
-    """Formulário de e-mail, permissões e simulação das 4 etapas do OAuth."""
+def _conectar(email: str, quem: dict | None = None, token: str = "",
+              tops: list[tuple[str, str]] | None = None) -> None:
+    """Guarda a sessão conectada (real ou simulada) e recarrega a página."""
+    st.session_state.conectado = True
+    st.session_state.email = email
+    st.session_state.token = token
+    st.session_state.sp_user = quem
+    st.session_state.tops = tops or list(TOPS)
+    st.session_state.res_conta = montar_resultado_conta(carregar_catalogo())
+    st.session_state.pl_conta = None
+    st.session_state.festa_conta = True
+    st.rerun()
+
+
+def _processar_callback(cfg: dict[str, str]) -> None:
+    """Troca o ?code= devolvido pelo Spotify por token e monta a sessão real."""
+    if st.session_state.conectado:
+        return
+    if st.query_params.get("error"):
+        st.query_params.clear()
+        st.warning("Você não autorizou o acesso — sem problema, tenta de novo "
+                   "quando quiser.", icon="🎧")
+        return
+    code = st.query_params.get("code")
+    if not code:
+        return
+    st.query_params.clear()
+    try:
+        with st.spinner("Conectando na sua conta…"):
+            token = spotify.trocar_code_por_token(cfg, code)
+            quem = spotify.perfil(token)
+            tops = spotify.top_faixas(token)
+    except requests.RequestException as erro:
+        st.error(f"Não consegui conectar no Spotify: {erro}", icon="🚫")
+        return
+    _conectar(quem["email"] or quem["nome"], quem, token, tops)
+
+
+def _tela_login_real(cfg: dict[str, str]) -> None:
+    """Login de verdade: botão-link pro consentimento OAuth do Spotify."""
+    with cartao("login"):
+        passo("PASSO 1", "Entrar com o Spotify",
+              "Entra com a conta cadastrada na lista de testadores do app.")
+        bloco('<ul class="gf-perm">'
+              + "".join(f"<li>{permissao}</li>" for permissao in PERMISSOES)
+              + "</ul>")
+        st.link_button("Conectar Spotify", spotify.url_login(cfg), type="primary")
+        st.caption("Você vai pro site do Spotify autorizar e volta pra cá.")
+
+
+def _tela_login_simulada() -> None:
+    """Fallback do protótipo: e-mail + as 4 etapas do OAuth encenadas."""
     with cartao("login"):
         passo("PASSO 1", "Entrar com o Spotify",
               "Use o e-mail cadastrado na lista de testes da residência.")
@@ -31,43 +87,47 @@ def _tela_login() -> None:
             if not email_valido(email):
                 st.error("Digite um e-mail válido para continuar.", icon="✉️")
                 return
-            # TODO: aqui entraria o fluxo real de OAuth (Authorization Code + PKCE):
-            #   GET https://accounts.spotify.com/authorize  -> consentimento
-            #   POST https://accounts.spotify.com/api/token -> troca do code pelo token
             with st.status("Conectando na sua conta…", expanded=True) as estado:
                 for etapa in ETAPAS_OAUTH:
                     st.write(f"✓ {etapa}")
                     time.sleep(0.47)
                 estado.update(label="Tudo pronto, já sei o que você ouve!",
                               state="complete", expanded=False)
-            st.session_state.conectado = True
-            st.session_state.res_conta = montar_resultado_conta(carregar_catalogo())
-            st.session_state.pl_conta = None
-            st.session_state.festa_conta = True
-            st.rerun()
+            _conectar(email)
+        st.caption("Modo simulado — preencha o `.streamlit/secrets.toml` pra "
+                   "conectar numa conta Spotify de verdade.")
 
 
-def _tela_conectado() -> None:
+def _tela_conectada() -> None:
     """Perfil do testador, mais ouvidas, métricas e joias recomendadas."""
     if st.session_state.festa_conta:
         st.session_state.festa_conta = False
         st.balloons()
 
+    real = bool(st.session_state.token)
     email = st.session_state.email
-    nome = nome_do_email(email) or "Testador"
+    quem = st.session_state.sp_user
+    nome = (quem["nome"] if real and quem else nome_do_email(email)) or "Testador"
+    tops = st.session_state.tops or list(TOPS)
+    origem = ("direto da sua conta" if real
+              else "foi daqui que saiu seu perfil de áudio")
+
     with cartao("perfil"):
         bloco(f'<div class="gf-who"><div class="gf-avatar">{nome[0]}</div>'
               f'<div><strong>Oi, {nome}!</strong><span>{email}</span></div>'
               '<span class="gf-pill">Conectado</span></div>'
-              '<p class="gf-help" style="margin:20px 0 0"><b>Suas 5 mais ouvidas</b> — '
-              'foi daqui que saiu seu perfil de áudio.</p>'
+              f'<p class="gf-help" style="margin:20px 0 0"><b>Suas 5 mais ouvidas</b> — '
+              f'{origem}.</p>'
               '<div class="gf-tops">'
               + "".join(f'<span class="gf-top">{titulo} <s>· {artista}</s></span>'
-                        for titulo, artista in TOPS)
+                        for titulo, artista in tops)
               + '</div>'
               '<p class="gf-help" style="margin:18px 0 8px">Perfil detectado: '
               '<b>energia alta com humor baixo</b> — você curte música intensa e melancólica.</p>'
               + barras_atributos_html(PERFIL_USUARIO))
+        if real:
+            st.caption("O perfil de áudio segue simulado: o Spotify descontinuou "
+                       "o endpoint de audio features pra apps novos.")
 
     mostrar_resultados(
         st.session_state.res_conta, "conta",
@@ -80,12 +140,17 @@ def _tela_conectado() -> None:
 
 
 def pagina_conta() -> None:
-    """Modo dos testadores: login simulado e recomendações pelo perfil de áudio."""
+    """Login (real ou simulado) e recomendações pelo perfil de áudio."""
     hero(mascote(ROSA, "chill", 88), "Deixa eu ouvir o que você ouve",
          "Modo dos testadores. Conectamos na sua conta, lemos suas mais ouvidas, "
          "montamos seu perfil de áudio e devolvemos só o que é raro e combina.",
          "Só leitura, prometo 🎧")
+    cfg = spotify.config()
+    if cfg:
+        _processar_callback(cfg)
     if st.session_state.conectado:
-        _tela_conectado()
+        _tela_conectada()
+    elif cfg:
+        _tela_login_real(cfg)
     else:
-        _tela_login()
+        _tela_login_simulada()

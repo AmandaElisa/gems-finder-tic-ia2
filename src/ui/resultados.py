@@ -1,12 +1,14 @@
-"""Exibição dos resultados do garimpo e gerador de playlist fictícia."""
+"""Exibição dos resultados do garimpo e gerador de playlist (real ou simulada)."""
 
 from __future__ import annotations
 
 import time
 from typing import Any, Mapping
 
+import requests
 import streamlit as st
 
+from src import spotify
 from src.recomendacao import novo_id_playlist
 from src.ui.componentes import (barras_atributos_html, bloco, cartao,
                                 container_com_chave, estado_vazio_html,
@@ -37,27 +39,53 @@ def mostrar_resultados(resultado: Mapping[str, Any], espaco: str, dica_vazia: st
     secao_playlist(resultado, espaco)
 
 
+def _gerar_playlist_real(resultado: Mapping[str, Any], chave_url: str) -> None:
+    """Cria a playlist privada de verdade na conta conectada via Web API."""
+    try:
+        with st.spinner("Criando na sua conta…"):
+            url = spotify.criar_playlist(
+                st.session_state.token, st.session_state.sp_user["id"],
+                f"Gems Finder · {resultado['titulo']}", resultado["faixas"])
+    except requests.RequestException as erro:
+        st.error(f"O Spotify não deixou criar a playlist: {erro}", icon="🚫")
+        return
+    st.session_state[chave_url] = url
+    st.success(f"Playlist criada de verdade na sua conta! Como as {len(resultado['faixas'])} "
+               "joias do catálogo são fictícias, ela nasce vazia com a lista na descrição.",
+               icon="💎")
+    st.balloons()
+
+
+def _gerar_playlist_simulada(resultado: Mapping[str, Any], chave_url: str) -> None:
+    """Fallback do protótipo: link fictício no formato do Spotify."""
+    with st.spinner("Criando…"):
+        time.sleep(0.9)
+    st.session_state[chave_url] = f"https://open.spotify.com/playlist/{novo_id_playlist()}"
+    st.success(f"Playlist criada! Guardei suas {len(resultado['faixas'])} joias "
+               f"em «{resultado['titulo']}» — é só abrir o link.", icon="💎")
+    st.balloons()
+
+
 def secao_playlist(resultado: Mapping[str, Any], espaco: str) -> None:
-    """Passo final: gera o link fictício da playlist privada."""
+    """Passo final: gera o link da playlist privada (real se conectado)."""
     numero = "PASSO 4" if espaco == "desc" else "ÚLTIMO PASSO"
     with cartao(f"playlist-{espaco}"):
         passo(numero, "Leva com você",
               "Criamos uma playlist privada na sua conta com as 8 faixas acima.")
         chave_url = f"pl_{espaco}"
+        conectado_real = bool(st.session_state.get("token")) and st.session_state.get("sp_user")
         if st.button("Gerar playlist", type="primary", key=f"btn_pl_{espaco}"):
-            with st.spinner("Criando…"):
-                time.sleep(0.9)
-            # TODO: aqui entraria a chamada real da Spotify Web API, com o token OAuth:
-            #   POST https://api.spotify.com/v1/users/{user_id}/playlists  -> cria a playlist
-            #   POST https://api.spotify.com/v1/playlists/{playlist_id}/tracks -> adiciona as faixas
-            st.session_state[chave_url] = f"open.spotify.com/playlist/{novo_id_playlist()}"
-            st.success(f"Playlist criada! Guardei suas {len(resultado['faixas'])} joias "
-                       f"em «{resultado['titulo']}» — é só abrir o link.", icon="💎")
-            st.balloons()
+            if conectado_real:
+                _gerar_playlist_real(resultado, chave_url)
+            else:
+                _gerar_playlist_simulada(resultado, chave_url)
 
         url = st.session_state.get(chave_url)
         if url:
             st.caption(f"**{resultado['titulo']}** · {len(resultado['faixas'])} faixas →")
-            st.code(f"https://{url}", language=None)
+            st.code(url, language=None)
+        elif not conectado_real and spotify.config():
+            st.caption("O link aparece aqui depois de gerar — conecta na aba "
+                       "🎧 Minha conta pra criar a playlist de verdade.")
         else:
             st.caption("O link aparece aqui depois de gerar")

@@ -18,6 +18,9 @@ PADROES: dict[str, Any] = {
     "pl_desc": None,
     "conectado": False,
     "email": "",
+    "token": "",
+    "sp_user": None,
+    "tops": None,
     "res_conta": None,
     "pl_conta": None,
     "festa_conta": False,
@@ -34,6 +37,7 @@ def iniciar_estado(generos: list[str]) -> None:
 
 def limpar_conta() -> None:
     """Desconecta o testador e volta o session_state da conta ao início."""
-    for chave in ("conectado", "email", "res_conta", "pl_conta", "festa_conta"):
+    for chave in ("conectado", "email", "token", "sp_user", "tops",
+                  "res_conta", "pl_conta", "festa_conta"):
         st.session_state[chave] = PADROES[chave]
     st.session_state.pop("w_email", None)

@@ -196,6 +196,14 @@ hr{border-color:rgba(20,20,20,.15);}
   background:var(--verde) !important;color:#fff !important;}
 .stButton > button[kind="primary"]:hover, .stButton > button[data-testid="stBaseButton-primary"]:hover{
   background:var(--verde) !important;color:#fff !important;}
+.stLinkButton > a{border:2px solid var(--tinta) !important;border-radius:99px;
+  background:#fff;color:var(--tinta);font-family:var(--d) !important;font-weight:600;
+  font-size:15px;padding:9px 24px;box-shadow:4px 4px 0 var(--tinta);transition:.14s;
+  text-decoration:none !important;}
+.stLinkButton > a:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--tinta);}
+.stLinkButton > a[kind="primary"], .stLinkButton > a[data-testid="stBaseLinkButton-primary"]{
+  background:var(--verde) !important;color:#fff !important;}
+.stLinkButton > a p{font-family:var(--d) !important;color:inherit !important;}
 [data-baseweb="input"], [data-baseweb="base-input"]{background:#fff !important;}
 [data-testid="stTextInput"] [data-baseweb="input"]{border:2px solid var(--tinta) !important;
   border-radius:99px;padding:2px 8px;}
