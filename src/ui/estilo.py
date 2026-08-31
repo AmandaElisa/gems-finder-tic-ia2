@@ -281,14 +281,37 @@ hr{border-color:rgba(20,20,20,.15);}
   .gf-title{font-size:29px;}
   .gf-metrics{grid-template-columns:1fr 1fr;}
 }
-/* em tela estreita os três modos não caem numa linha e a pílula quebrava no
-   meio; vira uma lista vertical de largura cheia, que lê como controle */
+/* em tela estreita os três modos não cabem na linha e o flex-wrap partia a
+   pílula no meio; mantém a cara de tabs comprimindo fonte e padding, e deixa
+   correr no eixo x (sem barra visível) se ainda faltar espaço */
 @media (max-width:640px){
-  [data-testid="stButtonGroup"]{flex-direction:column;align-items:stretch;
-    width:100%;border-radius:20px;flex-wrap:nowrap;}
-  [data-testid="stButtonGroup"] button{width:100%;justify-content:center;
-    padding:10px 14px !important;}
+  /* Tabs roláveis no padrão do Material 3: uma linha só, e o que não couber se
+     alcança arrastando. O flex que envolve os botões é um div INTERNO do
+     stButtonGroup, não ele mesmo — o nowrap e o overflow vão nele. */
+  [data-testid="stButtonGroup"]{max-width:100%;}
+  [data-testid="stButtonGroup"] > div{
+    flex-wrap:nowrap !important;overflow-x:auto;max-width:100%;
+    -webkit-overflow-scrolling:touch;scroll-behavior:smooth;
+    scroll-snap-type:x proximity;scrollbar-width:none;-ms-overflow-style:none;}
+  [data-testid="stButtonGroup"] > div::-webkit-scrollbar{display:none;}
+  [data-testid="stButtonGroup"] button{flex:none;padding:6px 10px !important;
+    scroll-snap-align:center;}
+  [data-testid="stButtonGroup"] button p{font-size:11.5px !important;letter-spacing:0;}
   .gf-metrics{grid-template-columns:1fr;}
+}
+/* No touch o swipe basta e a barra fica escondida. Com mouse não há como
+   arrastar a tira, então expõe uma barra fininha — é a afordância que o
+   Material cobre com as setas laterais no desktop. */
+@media (max-width:640px) and (pointer:fine){
+  [data-testid="stButtonGroup"]{padding-bottom:2px;}
+  [data-testid="stButtonGroup"] > div{scrollbar-width:thin;
+    scrollbar-color:rgba(20,20,20,.4) transparent;padding-bottom:5px;}
+  [data-testid="stButtonGroup"] > div::-webkit-scrollbar{display:block;height:5px;}
+  [data-testid="stButtonGroup"] > div::-webkit-scrollbar-track{background:transparent;}
+  [data-testid="stButtonGroup"] > div::-webkit-scrollbar-thumb{
+    background:rgba(20,20,20,.4);border-radius:99px;}
+  [data-testid="stButtonGroup"] > div::-webkit-scrollbar-thumb:hover{
+    background:rgba(20,20,20,.65);}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
 </style>
