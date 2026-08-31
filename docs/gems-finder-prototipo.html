@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gems Finder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --lime:#CFF25E;
+  --pink:#F79BD8;
+  --peri:#B3BCF7;
+  --blue:#3B45D9;
+  --green:#1DB954;
+  --green-dk:#0E7A36;
+  --cream:#FAF6EC;
+  --ink:#141414;
+  --mute:#6E6A63;
+  --line:#141414;
+  --f:"Figtree",ui-sans-serif,system-ui,sans-serif;
+  --d:"Fredoka",var(--f);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--cream);color:var(--ink);font-family:var(--f);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(520px 380px at 92% 2%, rgba(179,188,247,.35), transparent 60%),
+                   radial-gradient(460px 340px at 2% 96%, rgba(247,155,216,.28), transparent 60%);}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--blue);outline-offset:3px;border-radius:8px}
+.app{display:grid;grid-template-columns:248px 1fr;min-height:100vh}
+
+/* rail */
+.rail{padding:24px 18px;display:flex;flex-direction:column;gap:24px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:10px}
+.brand h1{font-family:var(--d);font-size:21px;font-weight:700;margin:0;letter-spacing:-.01em}
+.brand small{display:block;font-size:11.5px;color:var(--mute);font-weight:600}
+.nav-label{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);font-weight:800;margin:0 0 8px}
+.nav{display:flex;flex-direction:column;gap:8px}
+.nav button{background:#fff;border:2px solid var(--ink);border-radius:14px;padding:11px 14px;display:flex;gap:10px;align-items:center;cursor:pointer;font-weight:700;font-size:14.5px;text-align:left;transition:.14s;box-shadow:3px 3px 0 var(--ink)}
+.nav button:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+.nav button[aria-current="true"]{background:var(--lime)}
+.rail-foot{margin-top:auto;font-size:12px;color:var(--mute);line-height:1.7;border-top:2px dashed rgba(20,20,20,.2);padding-top:14px}
+.rail-foot b{color:var(--ink)}
+
+main{padding:32px 44px 90px;max-width:1200px}
+.view{display:none;animation:rise .3s ease both}
+.view.on{display:block}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+.hero{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+h2.title{font-family:var(--d);font-size:40px;font-weight:700;letter-spacing:-.02em;margin:0;line-height:1.08}
+.lede{color:var(--mute);margin:8px 0 0;max-width:56ch;font-size:15.5px}
+.bubble{background:#fff;border:2px solid var(--ink);border-radius:22px 22px 22px 6px;padding:12px 18px;font-family:var(--d);font-size:16px;box-shadow:4px 4px 0 var(--ink);animation:float 3.6s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+
+.card{background:#fff;border:2px solid var(--ink);border-radius:22px;padding:22px 24px;margin-top:22px;box-shadow:5px 5px 0 var(--ink)}
+.step{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.step b{font-size:11px;font-weight:800;letter-spacing:.08em;background:var(--lime);border:2px solid var(--ink);border-radius:99px;padding:2px 10px}
+.step h3{font-family:var(--d);font-size:19px;font-weight:600;margin:0}
+.help{color:var(--mute);font-size:13.5px;margin:0 0 16px}
+.help b{color:var(--ink)}
+
+/* segmented */
+.seg{display:inline-flex;background:#fff;border:2px solid var(--ink);border-radius:99px;padding:4px;gap:4px;box-shadow:3px 3px 0 var(--ink);flex-wrap:wrap}
+.seg button{border:0;background:none;border-radius:99px;padding:9px 20px;font-weight:700;font-size:14px;color:var(--mute);cursor:pointer;transition:.14s}
+.seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
+
+/* vibes */
+.vibes{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:18px}
+.vibe{border:2px solid var(--ink);border-radius:20px;padding:16px 14px 14px;cursor:pointer;text-align:center;transition:.16s;background:#fff;box-shadow:4px 4px 0 var(--ink)}
+.vibe:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--ink)}
+.vibe:hover .mascot{animation:wiggle .5s ease}
+.vibe strong{display:block;font-family:var(--d);font-size:17px;font-weight:600;margin-top:8px}
+.vibe span{display:block;font-size:12.5px;color:var(--mute);line-height:1.35;margin-top:2px}
+.vibe[aria-pressed="true"]{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--ink)}
+@keyframes wiggle{0%,100%{transform:rotate(0)}30%{transform:rotate(-7deg)}65%{transform:rotate(6deg)}}
+.mascot{display:block;margin:0 auto}
+.eye{animation:blink 5s infinite}
+.eye.b{animation-delay:.15s}
+@keyframes blink{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}
+
+/* chips */
+.chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.chip{border:2px solid var(--ink);background:#fff;border-radius:99px;padding:9px 16px;font-weight:700;font-size:14px;cursor:pointer;transition:.14s;display:flex;align-items:center;gap:9px;box-shadow:3px 3px 0 var(--ink)}
+.chip:hover{transform:translate(-1px,-1px)}
+.chip small{color:var(--mute);font-weight:700;font-size:12px}
+.chip[aria-pressed="true"]{background:var(--lime)}
+.chip[aria-pressed="true"] small{color:var(--ink)}
+.search{width:100%;max-width:340px;border:2px solid var(--ink);border-radius:99px;padding:11px 18px;font-size:14.5px;background:#fff;margin-top:14px}
+.search:focus{outline:none;box-shadow:3px 3px 0 var(--ink)}
+.count{font-size:13px;color:var(--mute);margin:12px 0 0;font-weight:600}
+
+/* profundidade */
+.depth{display:flex;align-items:flex-end;gap:26px;flex-wrap:wrap}
+.depth .num{font-family:var(--d);font-size:44px;font-weight:700;line-height:1}
+.depth .num span{font-size:15px;color:var(--mute);font-family:var(--f);font-weight:700}
+.depth-vis{flex:1;min-width:280px}
+.strata{display:flex;align-items:flex-end;gap:3px;height:48px}
+.strata i{flex:1;background:#EAE4D6;border:1px solid rgba(20,20,20,.15);border-bottom:0;border-radius:4px 4px 0 0;transition:.22s}
+.strata i.dig{background:var(--lime);border-color:var(--ink)}
+.axis{display:flex;justify-content:space-between;font-size:11.5px;color:var(--mute);margin-top:7px;font-weight:600}
+input[type=range]{width:100%;margin-top:10px;-webkit-appearance:none;background:transparent}
+input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:99px;background:#fff;border:2px solid var(--ink)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:var(--pink);margin-top:-10px;border:2px solid var(--ink);cursor:pointer}
+input[type=range]::-moz-range-track{height:8px;border-radius:99px;background:#fff;border:2px solid var(--ink)}
+input[type=range]::-moz-range-thumb{width:24px;height:24px;border:2px solid var(--ink);border-radius:50%;background:var(--pink);cursor:pointer}
+
+.btn{background:var(--green);color:#fff;border:2px solid var(--ink);border-radius:99px;padding:13px 30px;font-family:var(--d);font-weight:600;font-size:16px;cursor:pointer;transition:.14s;box-shadow:4px 4px 0 var(--ink)}
+.btn:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--ink)}
+.btn:disabled{opacity:.7;transform:none;box-shadow:4px 4px 0 var(--ink);cursor:progress}
+.btn.ghost{background:#fff;color:var(--ink)}
+.actions{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:18px}
+.status{font-size:13.5px;color:var(--mute)}
+.status b{color:var(--ink);font-weight:800}
+
+/* métricas */
+.sec-h{display:flex;align-items:center;gap:12px;margin:34px 0 0;flex-wrap:wrap}
+.sec-h h3{font-family:var(--d);font-size:24px;font-weight:600;margin:0}
+.sec-h p{margin:0;font-size:13.5px;color:var(--mute)}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:14px}
+.met{background:#fff;border:2px solid var(--ink);border-radius:18px;padding:16px 18px;box-shadow:4px 4px 0 var(--ink)}
+.met:nth-child(1){background:var(--lime)}
+.met:nth-child(2){background:var(--peri)}
+.met p{margin:0;font-size:12px;font-weight:800}
+.met strong{display:block;font-family:var(--d);font-size:34px;font-weight:700;letter-spacing:-.02em;margin:2px 0 3px}
+.met small{font-size:11.5px;line-height:1.4;display:block;color:var(--mute)}
+.met.model{background:#fff}
+.met.model strong{color:var(--green-dk)}
+.met.model p:after{content:"MODELO";font-size:9px;letter-spacing:.08em;background:var(--ink);color:#fff;border-radius:99px;padding:2px 7px;margin-left:7px;vertical-align:2px}
+
+/* resultados */
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:14px}
+.gem{background:#fff;border:2px solid var(--ink);border-radius:20px;padding:16px 18px;cursor:pointer;transition:.14s;box-shadow:4px 4px 0 var(--ink);animation:pop .35s ease both}
+@keyframes pop{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.gem:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--ink)}
+.gem:hover .mascot{animation:wiggle .5s ease}
+.gtop{display:flex;align-items:center;gap:13px}
+.gtop .txt{flex:1;min-width:0}
+.gtop b{display:block;font-family:var(--d);font-size:17px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gtop i{display:block;font-style:normal;font-size:13px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mt{text-align:right;flex:none}
+.mt strong{display:block;font-family:var(--d);font-size:23px;font-weight:700;line-height:1.05}
+.mt small{font-size:10.5px;color:var(--mute);font-weight:700}
+.meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+.badge{border:2px solid var(--ink);border-radius:99px;padding:2px 10px;font-weight:700;font-size:11.5px;background:#fff}
+.attrs{display:none;margin-top:14px;padding-top:14px;border-top:2px dashed rgba(20,20,20,.18)}
+.gem[aria-expanded="true"] .attrs{display:block}
+.attr{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--mute);margin-bottom:8px}
+.attr span{width:104px;flex:none;color:var(--ink);font-weight:700}
+.attr i{flex:1;height:9px;background:#fff;border:2px solid var(--ink);border-radius:99px;display:block;overflow:hidden}
+.attr i b{display:block;height:100%;background:var(--pink)}
+.attr em{font-style:normal;width:30px;text-align:right;flex:none;font-weight:700;color:var(--ink)}
+.why{font-size:12.5px;color:var(--mute);margin:10px 0 0}
+.empty{text-align:center;padding:38px}
+.empty p{margin:0;font-family:var(--d);font-size:20px}
+
+/* playlist */
+.pl{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:0}
+.link{flex:1;min-width:280px;border:2px dashed rgba(20,20,20,.35);border-radius:99px;padding:12px 20px;font-size:13.5px;color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#FDFBF5}
+.link b{color:var(--ink)}
+
+/* conta */
+.auth{max-width:480px}
+.field input{width:100%;border:2px solid var(--ink);border-radius:99px;padding:14px 20px;font-size:15px;margin-top:6px;background:#fff}
+.field input:focus{outline:none;box-shadow:3px 3px 0 var(--ink)}
+.err{color:#C0392B;font-size:13px;margin:10px 0 0;display:none;font-weight:600}
+.err.on{display:block}
+.perm{margin:16px 0 0;padding:0;list-style:none}
+.perm li{font-size:13.5px;color:var(--mute);padding-left:24px;position:relative;margin-bottom:5px}
+.perm li:before{content:"✓";position:absolute;left:0;color:var(--green-dk);font-weight:800}
+.steps{margin-top:18px;font-size:13.5px}
+.steps div{color:var(--mute);padding:4px 0;opacity:.35;transition:.3s}
+.steps div.on{opacity:1;color:var(--ink);font-weight:700}
+.steps div.on:before{content:"✓ ";color:var(--green-dk)}
+.who{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.avatar{width:54px;height:54px;border-radius:50%;background:var(--pink);border:2px solid var(--ink);display:grid;place-items:center;font-family:var(--d);font-size:22px;font-weight:700}
+.who strong{display:block;font-family:var(--d);font-size:20px;font-weight:600}
+.who span{font-size:13px;color:var(--mute)}
+.pill{margin-left:auto;background:var(--lime);border:2px solid var(--ink);border-radius:99px;padding:6px 15px;font-size:12px;font-weight:800}
+.tops{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+.top{background:#fff;border:2px solid var(--ink);border-radius:99px;padding:7px 15px;font-size:13px;font-weight:700}
+.top s{text-decoration:none;color:var(--mute);font-weight:500}
+
+.toast{position:fixed;left:50%;bottom:30px;transform:translate(-50%,20px);background:var(--ink);color:#fff;font-family:var(--d);font-weight:600;font-size:15px;padding:13px 26px;border-radius:99px;opacity:0;pointer-events:none;transition:.26s;z-index:60}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.confete{position:fixed;width:14px;height:14px;pointer-events:none;z-index:55;border:2px solid var(--ink)}
+
+@media (max-width:1000px){
+  .app{grid-template-columns:1fr}
+  .rail{position:static;height:auto}
+  .nav{flex-direction:row;flex-wrap:wrap}
+  main{padding:22px 16px 60px}
+  h2.title{font-size:29px}
+  .vibes,.metrics,.grid{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="rail">
+    <div class="brand">
+      <svg width="34" height="38" viewBox="0 0 34 38" aria-hidden="true">
+        <path d="M17 2 4 12l13 24 13-24L17 2z" fill="#CFF25E" stroke="#141414" stroke-width="2" stroke-linejoin="round"/>
+        <circle cx="13" cy="17" r="1.9" fill="#141414"/><circle cx="21" cy="17" r="1.9" fill="#141414"/>
+        <path d="M13.5 22c1.8 2 5.2 2 7 0" stroke="#141414" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+      </svg>
+      <div><h1>Gems Finder</h1><small>joias ocultas do Spotify</small></div>
+    </div>
+
+    <div>
+      <p class="nav-label">Navegação</p>
+      <nav class="nav">
+        <button data-view="vibes" aria-current="true">⛏️ Descobrir</button>
+        <button data-view="spotify" aria-current="false">🎧 Minha conta</button>
+      </nav>
+    </div>
+
+    <div class="rail-foot">
+      <b>114.000</b> faixas indexadas<br>
+      <b>12</b> gêneros · <b>10</b> artistas de referência<br><br>
+      Residência em IA · UnB
+    </div>
+  </aside>
+
+  <main>
+    <!-- ===== DESCOBRIR ===== -->
+    <section class="view on" id="view-vibes">
+      <div class="hero">
+        <div id="heroMascot"></div>
+        <div>
+          <h2 class="title">Bora garimpar?</h2>
+          <p class="lede">Me diz o que você curte e eu cavo 114 mil faixas atrás das joias que quase ninguém ouviu ainda.</p>
+        </div>
+        <div class="bubble">Escolhe aí embaixo 👇</div>
+      </div>
+
+      <div class="card">
+        <div class="step"><b>PASSO 1</b><h3>De onde a gente parte?</h3></div>
+        <p class="help">Três caminhos pro mesmo tesouro: pela <b>sensação</b> que a música dá, pelo <b>gênero</b>, ou pelos <b>artistas que você já ama</b>.</p>
+        <div class="seg" id="seg">
+          <button data-m="vibe" aria-pressed="true">Por vibe</button>
+          <button data-m="genero" aria-pressed="false">Por gênero</button>
+          <button data-m="artista" aria-pressed="false">Por artista favorito</button>
+        </div>
+
+        <div id="selVibe"><div class="vibes" id="vibes"></div></div>
+
+        <div id="selGenero" style="display:none">
+          <div class="chips" id="generos"></div>
+        </div>
+
+        <div id="selArtista" style="display:none">
+          <input class="search" id="buscaArt" placeholder="Buscar artista…" aria-label="Buscar artista" />
+          <div class="chips" id="artistas"></div>
+          <p class="count" id="artCount">Escolha de 1 a 3 artistas.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="step"><b>PASSO 2</b><h3>Quão escondida você aceita?</h3></div>
+        <p class="help">A popularidade do Spotify vai de 0 (ninguém ouviu) a 100 (hit mundial). Abaixo de 30 já é território de garimpo.</p>
+        <div class="depth">
+          <div>
+            <div class="num" id="popVal">18<span> /100</span></div>
+            <p class="help" style="margin:2px 0 0" id="popTxt">Bem underground</p>
+          </div>
+          <div class="depth-vis">
+            <div class="strata" id="strata" aria-hidden="true"></div>
+            <div class="axis"><span>0 · desconhecido</span><span>50</span><span>100 · mainstream</span></div>
+            <input type="range" id="pop" min="1" max="40" value="18" aria-label="Popularidade máxima" />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="step"><b>PASSO 3</b><h3>Garimpe!</h3></div>
+        <p class="help">O modelo compara os atributos de áudio de cada faixa com o seu alvo e ranqueia por afinidade.</p>
+        <div class="actions" style="margin-top:0">
+          <button class="btn" id="dig">Garimpar joias</button>
+          <span class="status" id="digStatus"></span>
+        </div>
+      </div>
+
+      <div id="results"></div>
+    </section>
+
+    <!-- ===== CONTA ===== -->
+    <section class="view" id="view-spotify">
+      <div class="hero">
+        <div id="heroMascot2"></div>
+        <div>
+          <h2 class="title">Deixa eu ouvir o que você ouve</h2>
+          <p class="lede">Modo dos testadores. Conectamos na sua conta, lemos suas mais ouvidas, montamos seu perfil de áudio e devolvemos só o que é raro e combina.</p>
+        </div>
+      </div>
+
+      <div id="authScreen">
+        <div class="card auth">
+          <div class="step"><b>PASSO 1</b><h3>Entrar com o Spotify</h3></div>
+          <p class="help">Use o e-mail cadastrado na lista de testes da residência.</p>
+          <div class="field"><input id="mail" type="email" placeholder="voce@aluno.unb.br" autocomplete="email" /></div>
+          <p class="err" id="mailErr">Digite um e-mail válido para continuar.</p>
+          <ul class="perm">
+            <li>Ler suas faixas e artistas mais ouvidos</li>
+            <li>Ler os atributos de áudio dessas faixas</li>
+            <li>Criar uma playlist privada na sua conta</li>
+          </ul>
+          <div class="actions"><button class="btn" id="auth">Conectar Spotify</button></div>
+          <div class="steps" id="steps" hidden>
+            <div data-s="1">Autorizando acesso via OAuth</div>
+            <div data-s="2">Lendo suas 50 faixas mais ouvidas</div>
+            <div data-s="3">Calculando seu perfil médio de áudio</div>
+            <div data-s="4">Cruzando com as 114.000 faixas do catálogo</div>
+          </div>
+        </div>
+      </div>
+      <div id="userScreen" style="display:none"></div>
+    </section>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- catálogo ---------- */
+const CAT=[
+["Núcleo Lento","Sala de Estudos, 4h",2021,"Curitiba",4,.28,.38,.30,.92,.62,72,"Lo-fi"],
+["Ana Zíper","Papel Milimetrado",2022,"Belo Horizonte",11,.33,.46,.34,.88,.44,84,"Lo-fi"],
+["Hélio Mesa","Cartografia do Sono",2019,"Porto Alegre",7,.25,.30,.26,.95,.78,60,"Ambiente"],
+["Kōri Bloom","Snow Static",2023,"Sapporo",14,.30,.42,.31,.90,.55,76,"Ambiente"],
+["Oficina Cinza","Turno da Madrugada",2020,"Recife",2,.36,.40,.38,.86,.35,92,"Pós-rock"],
+["Marta Vetro","Vidro Fosco",2024,"Lisboa",19,.31,.50,.33,.80,.68,70,"Ambiente"],
+["Ruído Doméstico","Ventilador em Ré",2018,"São Paulo",5,.22,.35,.24,.97,.72,58,"Ambiente"],
+["Teleférico","Cabo de Aço",2022,"Bogotá",23,.40,.48,.40,.75,.40,88,"Pós-rock"],
+["Britadeira Social","Cadência Bruta",2023,"São Paulo",9,.95,.72,.82,.10,.03,152,"Punk"],
+["VOLTA SECA","Corta o Vento",2024,"Fortaleza",16,.92,.78,.86,.06,.05,148,"Funk BR"],
+["Neon Cavalar","Trote",2021,"Goiânia",6,.90,.66,.79,.22,.08,160,"Punk"],
+["Fábrica de Pulso","Sexta Série",2022,"Manaus",12,.88,.60,.84,.35,.04,138,"Techno"],
+["Kilo Bruto","Repetição 12",2023,"Salvador",21,.94,.70,.88,.14,.02,145,"Techno"],
+["Hard Copy","Iron Draft",2020,"Detroit",27,.89,.63,.76,.28,.06,150,"Techno"],
+["Serra Elétrica","Faísca",2019,"Blumenau",3,.97,.55,.72,.18,.02,168,"Punk"],
+["Pista Molhada","Aquaplanagem",2024,"Rio de Janeiro",18,.85,.75,.90,.12,.09,128,"Funk BR"],
+["Beira de Rio","Manhã de Terça",2022,"Paraty",8,.34,.64,.52,.45,.80,96,"MPB"],
+["Lume","Varanda Aberta",2023,"Florianópolis",15,.38,.70,.56,.30,.74,100,"MPB"],
+["Verão Baixo","Chinelo na Areia",2021,"Maceió",24,.42,.75,.62,.20,.66,104,"Samba"],
+["Cãibra Suave","Rede Armada",2020,"Belém",4,.30,.58,.48,.55,.85,88,"Bossa nova"],
+["Coral do Quintal","Limoeiro",2024,"Olinda",13,.36,.68,.50,.38,.82,92,"Samba"],
+["Nilo Sereno","Água Parada",2019,"Cascais",20,.28,.55,.44,.50,.88,84,"Bossa nova"],
+["Tarde Comprida","Café Requentado",2023,"Campinas",10,.40,.62,.58,.25,.70,98,"Indie folk"],
+["Palha & Prata","Volta pra Casa",2018,"Tiradentes",26,.33,.60,.46,.42,.79,90,"Indie folk"],
+["Inverno Postal","Carta Não Enviada",2021,"Porto Alegre",7,.26,.12,.28,.35,.72,68,"Slowcore"],
+["Duna Cinza","Setembro Inteiro",2023,"Brasília",12,.30,.16,.32,.28,.65,74,"Shoegaze"],
+["Casa Vazia","Móveis Cobertos",2020,"Petrópolis",3,.22,.10,.24,.40,.84,62,"Slowcore"],
+["Lívia Bruma","Quase Domingo",2024,"São Paulo",17,.34,.20,.35,.22,.58,80,"Indie folk"],
+["Pálido Norte","Estrada de Chão",2019,"Londrina",5,.28,.14,.30,.45,.76,66,"Slowcore"],
+["Amèlie Fond","Rue Sans Nom",2022,"Marselha",22,.32,.18,.34,.30,.60,72,"Shoegaze"],
+["Fim de Feira","Última Barraca",2023,"Natal",9,.25,.08,.26,.38,.80,58,"Slowcore"],
+["Sereno Tardio","Janela Embaçada",2018,"Gramado",14,.29,.22,.31,.33,.70,70,"Shoegaze"]
+].map(r=>({art:r[0],tit:r[1],ano:r[2],cid:r[3],pop:r[4],en:r[5],va:r[6],da:r[7],ins:r[8],ac:r[9],bpm:r[10],gen:r[11]}));
+
+/* artistas de referência (mainstream fictícios) */
+const ARTISTAS=[
+{n:"Dora Lima",g:"MPB",pop:84,en:.42,va:.60,da:.58,ins:.10,ac:.62},
+{n:"Feras do Cerrado",g:"Rock",pop:78,en:.88,va:.62,da:.60,ins:.14,ac:.10},
+{n:"Otávio Rey",g:"Indie",pop:73,en:.36,va:.24,da:.34,ins:.20,ac:.55},
+{n:"Bruno Sacchi",g:"Pop",pop:81,en:.66,va:.72,da:.76,ins:.05,ac:.22},
+{n:"MC Vitrine",g:"Funk BR",pop:91,en:.90,va:.80,da:.92,ins:.04,ac:.05},
+{n:"Clara Bandeira",g:"Bossa nova",pop:69,en:.28,va:.58,da:.46,ins:.16,ac:.86},
+{n:"Nêga Sol",g:"Samba",pop:76,en:.55,va:.82,da:.80,ins:.06,ac:.48},
+{n:"Grupo Contramão",g:"Pós-rock",pop:62,en:.48,va:.34,da:.30,ins:.72,ac:.30},
+{n:"Hana & os Ventos",g:"Shoegaze",pop:58,en:.40,va:.20,da:.32,ins:.44,ac:.40},
+{n:"Léo Quadrado",g:"Techno",pop:70,en:.92,va:.58,da:.90,ins:.60,ac:.03}
+];
+
+const VIBES={
+  foco:{nome:"Foco",desc:"estudar e trabalhar",cor:"#B3BCF7",mood:"foco",alvo:{en:.30,va:.42,da:.32,ins:.88,ac:.55},p10:91},
+  treino:{nome:"Treino",desc:"energia lá em cima",cor:"#F79BD8",mood:"treino",alvo:{en:.92,va:.70,da:.83,ins:.16,ac:.05},p10:87},
+  chill:{nome:"Chill",desc:"leve e acústica",cor:"#CFF25E",mood:"chill",alvo:{en:.35,va:.66,da:.52,ins:.38,ac:.78},p10:84},
+  melancolia:{nome:"Melancolia",desc:"lenta e sentimental",cor:"#9AD6E8",mood:"triste",alvo:{en:.28,va:.15,da:.30,ins:.34,ac:.70},p10:89}
+};
+const W={en:.25,va:.25,da:.20,ins:.15,ac:.15};
+const GENS=[...new Set(CAT.map(t=>t.gen))].sort((a,b)=>a.localeCompare(b,"pt"));
+const TOPS=[["Meia-Noite em Copacabana","Dora Lima"],["Antídoto","Feras do Cerrado"],["Vista Cansada","Otávio Rey"],["Linha Amarela","Bruno Sacchi"],["Nunca Foi Sorte","MC Vitrine"]];
+
+const $=(s,c=document)=>c.querySelector(s), $$=(s,c=document)=>[...c.querySelectorAll(s)];
+let modo="vibe", vibe="foco", genero=GENS[0], favs=[], teto=18;
+
+const match=(t,a)=>{let d=0;for(const k in W)d+=W[k]*Math.abs(t[k]-a[k]);
+  return Math.max(31,Math.min(99,Math.round(100-d*135+(30-t.pop)*.15)));};
+const media=list=>{const o={};for(const k in W)o[k]=list.reduce((s,t)=>s+t[k],0)/list.length;return o;};
+const centro=g=>media(CAT.filter(t=>t.gen===g));
+const rar=p=>p<=8?["Joia bruta","#CFF25E"]:p<=17?["Rara","#F79BD8"]:["Pouco ouvida","#B3BCF7"];
+
+/* ---------- mascote ---------- */
+function mascot(cor,mood,size=64){
+  const olhos={
+    foco:`<circle class="eye" cx="21" cy="30" r="2.6" fill="#141414"/><circle class="eye b" cx="35" cy="30" r="2.6" fill="#141414"/>
+          <path d="M15 25.5h12M29 25.5h12" stroke="#141414" stroke-width="2" stroke-linecap="round"/>`,
+    treino:`<circle class="eye" cx="21" cy="29" r="3.4" fill="#141414"/><circle class="eye b" cx="35" cy="29" r="3.4" fill="#141414"/>`,
+    chill:`<path d="M17 30c2-3 6-3 8 0M31 30c2-3 6-3 8 0" stroke="#141414" stroke-width="2.2" fill="none" stroke-linecap="round"/>`,
+    triste:`<circle class="eye" cx="21" cy="31" r="2.8" fill="#141414"/><circle class="eye b" cx="35" cy="31" r="2.8" fill="#141414"/>
+            <path d="M17 25.8c2.2-1.4 5-1.4 7.2.6M39 25.8c-2.2-1.4-5-1.4-7.2.6" stroke="#141414" stroke-width="1.9" fill="none" stroke-linecap="round"/>`,
+    feliz:`<circle class="eye" cx="21" cy="29" r="2.8" fill="#141414"/><circle class="eye b" cx="35" cy="29" r="2.8" fill="#141414"/>`
+  }[mood]||"";
+  const boca={
+    foco:`<path d="M23 39h10" stroke="#141414" stroke-width="2.2" stroke-linecap="round"/>`,
+    treino:`<ellipse cx="28" cy="39" rx="5" ry="6" fill="#141414"/>`,
+    chill:`<path d="M22 37c3 4 9 4 12 0" stroke="#141414" stroke-width="2.2" fill="none" stroke-linecap="round"/>`,
+    triste:`<path d="M24 39.5h8" stroke="#141414" stroke-width="2.2" fill="none" stroke-linecap="round"/>`,
+    feliz:`<path d="M21 37c4 5 10 5 14 0" stroke="#141414" stroke-width="2.2" fill="none" stroke-linecap="round"/>`
+  }[mood]||"";
+  const bracos = mood==="treino"
+    ? `<path d="M9 34 2 22M47 34l7-12" stroke="#141414" stroke-width="2.2" stroke-linecap="round"/><circle cx="2" cy="21" r="3" fill="#141414"/><circle cx="54" cy="21" r="3" fill="#141414"/>`
+    : `<path d="M9 38c-5 2-6 6-5 9M47 38c5 2 6 6 5 9" stroke="#141414" stroke-width="2.2" fill="none" stroke-linecap="round"/><circle cx="4" cy="48" r="3" fill="#141414"/><circle cx="52" cy="48" r="3" fill="#141414"/>`;
+  return `<svg class="mascot" width="${size}" height="${size*1.15}" viewBox="-4 0 64 66" aria-hidden="true">
+    ${bracos}
+    <path d="M28 4 8 17l6 34h28l6-34L28 4z" fill="${cor}" stroke="#141414" stroke-width="2.4" stroke-linejoin="round"/>
+    <path d="M28 4 8 17h40L28 4z" fill="#fff" fill-opacity=".35" stroke="#141414" stroke-width="1.6" stroke-linejoin="round"/>
+    ${olhos}${boca}
+    <path d="M20 55v6M36 55v6" stroke="#141414" stroke-width="2.2" stroke-linecap="round"/>
+    <path d="M15 62h9M32 62h9" stroke="#141414" stroke-width="2.4" stroke-linecap="round"/>
+  </svg>`;
+}
+$("#heroMascot").innerHTML=mascot("#CFF25E","feliz",92);
+$("#heroMascot2").innerHTML=mascot("#F79BD8","chill",88);
+
+function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("on");clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove("on"),2600);}
+function confete(){
+  const cs=["#CFF25E","#F79BD8","#B3BCF7","#1DB954"];
+  for(let i=0;i<22;i++){const s=document.createElement("i");s.className="confete";
+    s.style.background=cs[i%4];s.style.left=(45+Math.random()*10)+"vw";s.style.top="55vh";
+    s.style.borderRadius=i%2?"50%":"3px";document.body.appendChild(s);
+    s.animate([{transform:"translate(0,0)",opacity:1},
+      {transform:`translate(${(Math.random()-.5)*520}px,${-(150+Math.random()*340)}px) rotate(${Math.random()*540}deg)`,opacity:0}],
+      {duration:1200+Math.random()*500,easing:"cubic-bezier(.2,.7,.3,1)"}).onfinish=()=>s.remove();}
+}
+const plId=()=>[...Array(22)].map(()=>"abcdefghijklmnopqrstuvwxyz0123456789"[Math.floor(Math.random()*36)]).join("");
+
+/* nav */
+$$(".nav button").forEach(b=>b.onclick=()=>{
+  $$(".nav button").forEach(x=>x.setAttribute("aria-current","false"));
+  b.setAttribute("aria-current","true");
+  $$(".view").forEach(v=>v.classList.remove("on"));
+  $("#view-"+b.dataset.view).classList.add("on");scrollTo({top:0,behavior:"smooth"});
+});
+
+/* seletores */
+$("#vibes").innerHTML=Object.entries(VIBES).map(([k,v])=>
+  `<button class="vibe" data-v="${k}" aria-pressed="${k==="foco"}" style="background:${k==="foco"?v.cor:"#fff"}">
+    ${mascot(v.cor,v.mood,56)}<strong>${v.nome}</strong><span>${v.desc}</span></button>`).join("");
+function pintaVibes(){$$(".vibe").forEach(b=>{
+  const v=VIBES[b.dataset.v];b.style.background=b.getAttribute("aria-pressed")==="true"?v.cor:"#fff";});}
+$$(".vibe").forEach(b=>b.onclick=()=>{
+  $$(".vibe").forEach(x=>x.setAttribute("aria-pressed","false"));
+  b.setAttribute("aria-pressed","true");vibe=b.dataset.v;pintaVibes();status();});
+
+$("#generos").innerHTML=GENS.map((n,i)=>{
+  const q=CAT.filter(t=>t.gen===n).length;
+  return `<button class="chip" data-g="${n}" aria-pressed="${i===0}">${n} <small>${q} faixas</small></button>`;}).join("");
+$$("#generos .chip").forEach(b=>b.onclick=()=>{
+  $$("#generos .chip").forEach(x=>x.setAttribute("aria-pressed","false"));
+  b.setAttribute("aria-pressed","true");genero=b.dataset.g;status();});
+
+function renderArtistas(filtro=""){
+  const f=filtro.toLowerCase();
+  $("#artistas").innerHTML=ARTISTAS.filter(a=>a.n.toLowerCase().includes(f)||a.g.toLowerCase().includes(f))
+    .map(a=>`<button class="chip" data-a="${a.n}" aria-pressed="${favs.includes(a.n)}">${a.n} <small>${a.g}</small></button>`).join("")
+    ||`<p class="count">Nenhum artista com esse nome no protótipo.</p>`;
+  $$("#artistas .chip").forEach(b=>b.onclick=()=>{
+    const n=b.dataset.a;
+    if(favs.includes(n)) favs=favs.filter(x=>x!==n);
+    else if(favs.length>=3){toast("Máximo de 3 artistas");return;}
+    else favs.push(n);
+    b.setAttribute("aria-pressed",favs.includes(n));
+    $("#artCount").textContent=favs.length?`${favs.length} de 3 escolhidos: ${favs.join(", ")}`:"Escolha de 1 a 3 artistas.";
+    status();});
+}
+renderArtistas();
+$("#buscaArt").oninput=e=>renderArtistas(e.target.value);
+
+$$("#seg button").forEach(b=>b.onclick=()=>{
+  $$("#seg button").forEach(x=>x.setAttribute("aria-pressed","false"));
+  b.setAttribute("aria-pressed","true");modo=b.dataset.m;
+  $("#selVibe").style.display=modo==="vibe"?"block":"none";
+  $("#selGenero").style.display=modo==="genero"?"block":"none";
+  $("#selArtista").style.display=modo==="artista"?"block":"none";
+  status();});
+
+/* profundidade */
+const strata=$("#strata");
+for(let i=0;i<40;i++){const b=document.createElement("i");
+  b.style.height=Math.max(12,Math.exp(-Math.pow(i*2.5-34,2)/900)*100)+"%";strata.appendChild(b);}
+const pintar=()=>$$("#strata i").forEach((b,i)=>b.classList.toggle("dig",i*2.5<=teto));
+pintar();
+$("#pop").oninput=e=>{teto=+e.target.value;$("#popVal").innerHTML=teto+"<span> /100</span>";
+  $("#popTxt").textContent=teto<=10?"Praticamente invisível":teto<=20?"Bem underground":teto<=30?"Conhecida em nicho":"Começando a aparecer";
+  pintar();status();};
+function status(){
+  const alvo=modo==="vibe"?`vibe <b>${VIBES[vibe].nome}</b>`
+    :modo==="genero"?`gênero <b>${genero}</b>`
+    :favs.length?`parecido com <b>${favs.join(", ")}</b>`:`<b>escolha pelo menos um artista</b>`;
+  $("#digStatus").innerHTML=`Buscando ${alvo}, com popularidade até <b>${teto}</b>.`;
+}
+status();
+
+/* garimpo */
+$("#dig").onclick=()=>{
+  if(modo==="artista"&&!favs.length){toast("Escolha pelo menos um artista");return;}
+  const b=$("#dig");b.disabled=true;b.textContent="Garimpando…";
+  setTimeout(()=>{b.disabled=false;b.textContent="Garimpar joias";render();},1150);
+};
+
+function cards(list,ctx){
+  return `<div class="grid">${list.map((t,i)=>{
+    const [nome,cor]=rar(t.pop);
+    return `<div class="gem" role="button" tabindex="0" aria-expanded="false" style="animation-delay:${i*50}ms">
+      <div class="gtop">${mascot(cor,t.va<.3?"triste":t.en>.75?"treino":t.ins>.7?"foco":"chill",44)}
+        <span class="txt"><b>${t.tit}</b><i>${t.art} · ${t.cid}, ${t.ano}</i></span>
+        <span class="mt"><strong>${t.m}%</strong><small>match</small></span></div>
+      <div class="meta"><span class="badge" style="background:${cor}">${nome}</span>
+        <span class="badge">${t.gen}</span><span class="badge">pop ${t.pop}</span><span class="badge">${t.bpm} BPM</span></div>
+      <div class="attrs">
+        ${[["Energia",t.en],["Humor (valência)",t.va],["Dançabilidade",t.da],["Instrumental",t.ins],["Acústica",t.ac]]
+          .map(([n,v])=>`<div class="attr"><span>${n}</span><i><b style="width:${Math.round(v*100)}%"></b></i><em>${Math.round(v*100)}</em></div>`).join("")}
+        <p class="why">Entrou porque ${ctx} — e só ${t.pop} de 100 no índice de popularidade.</p>
+      </div></div>`;}).join("")}</div>`;
+}
+function ativar(scope){$$(".gem",scope).forEach(el=>{
+  const t=()=>el.setAttribute("aria-expanded",el.getAttribute("aria-expanded")!=="true");
+  el.onclick=t;el.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();t();}};});}
+
+function render(){
+  let base=CAT,alvo,titulo,p10,ctx,universo;
+  if(modo==="vibe"){
+    alvo=VIBES[vibe].alvo;p10=VIBES[vibe].p10;titulo=`Joias da vibe ${VIBES[vibe].nome}`;
+    ctx=`os atributos de áudio batem com o alvo da vibe ${VIBES[vibe].nome}`;
+  }else if(modo==="genero"){
+    base=CAT.filter(t=>t.gen===genero);alvo=centro(genero);p10=86;titulo=`Joias de ${genero}`;
+    ctx=`ela representa bem o som médio do gênero ${genero}`;
+  }else{
+    const sel=ARTISTAS.filter(a=>favs.includes(a.n));
+    alvo=media(sel);p10=90;titulo=`Parecido com ${favs.join(" + ")}`;
+    ctx=`o perfil sonoro dela chega perto de ${favs.join(" e ")}`;
+  }
+  universo=base.length;
+  const found=base.filter(t=>t.pop<=teto).map(t=>({...t,m:match(t,alvo)})).sort((a,b)=>b.m-a.m).slice(0,8);
+  const box=$("#results");
+
+  if(!found.length){
+    box.innerHTML=`<div class="card empty">${mascot("#B3BCF7","triste",70)}
+      <p>Nada nessa profundidade.</p>
+      <p class="help" style="margin-top:6px">Aumenta a popularidade máxima no passo 2 ou troca a escolha do passo 1.</p></div>`;
+    box.scrollIntoView({behavior:"smooth",block:"start"});return;
+  }
+  const med=Math.round(found.reduce((s,t)=>s+t.m,0)/found.length);
+  const cov=Math.round(base.filter(t=>t.pop<=teto).length/universo*100);
+  box.innerHTML=`
+    <div class="sec-h">${mascot("#CFF25E","feliz",52)}<h3>${titulo}</h3><p>Clique numa faixa pra ver os atributos de áudio.</p></div>
+    <div class="metrics">
+      <div class="met"><p>Joias encontradas</p><strong>${found.length}</strong><small>as 8 melhores do ranking</small></div>
+      <div class="met"><p>Match médio</p><strong>${med}%</strong><small>afinidade com o alvo escolhido</small></div>
+      <div class="met model"><p>Precisão @8</p><strong>${p10}%</strong><small>sugestões aprovadas nos testes com usuários</small></div>
+      <div class="met model"><p>Cobertura</p><strong>${cov}%</strong><small>do catálogo elegível cabe neste filtro</small></div>
+    </div>
+    ${cards(found,ctx)}
+    <div class="card">
+      <div class="step"><b>PASSO 4</b><h3>Leva com você</h3></div>
+      <p class="help">Criamos uma playlist privada na sua conta com as 8 faixas acima.</p>
+      <div class="pl">
+        <div class="link" id="plLink">O link aparece aqui depois de gerar</div>
+        <button class="btn" id="gen">Gerar playlist</button>
+      </div></div>`;
+  ativar(box);
+  $("#gen").onclick=e=>gerar(e.target,found,titulo);
+  toast(`${found.length} joias encontradas!`);
+  box.scrollIntoView({behavior:"smooth",block:"start"});
+}
+function gerar(btn,list,nome){
+  btn.disabled=true;btn.textContent="Criando…";
+  setTimeout(()=>{
+    const url="open.spotify.com/playlist/"+plId();
+    $("#plLink").innerHTML=`<b>${nome}</b> · ${list.length} faixas — ${url}`;
+    btn.disabled=false;btn.textContent="Copiar link";
+    btn.onclick=()=>{navigator.clipboard?.writeText("https://"+url);toast("Link copiado");};
+    toast("Playlist criada!");confete();
+  },900);
+}
+render();
+
+/* conta */
+$("#auth").onclick=()=>{
+  const mail=$("#mail").value.trim();
+  const ok=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail);
+  $("#mailErr").classList.toggle("on",!ok);
+  if(!ok){$("#mail").focus();return;}
+  const b=$("#auth");b.disabled=true;b.textContent="Conectando…";
+  $("#steps").hidden=false;let s=0;
+  const t=setInterval(()=>{s++;$$("#steps div").forEach(d=>d.classList.toggle("on",+d.dataset.s<=s));
+    if(s>=4){clearInterval(t);setTimeout(()=>conectado(mail),400);}},470);
+};
+function conectado(mail){
+  const nome=mail.split("@")[0].replace(/[._-]/g," ").replace(/\b\w/g,c=>c.toUpperCase());
+  const perfil={en:.62,va:.41,da:.55,ins:.29,ac:.44};
+  const rec=CAT.filter(t=>t.pop<=20).map(t=>({...t,m:match(t,perfil)})).sort((a,b)=>b.m-a.m).slice(0,8);
+  const med=Math.round(rec.reduce((s,t)=>s+t.m,0)/rec.length);
+  $("#authScreen").style.display="none";
+  const u=$("#userScreen");u.style.display="block";
+  u.innerHTML=`
+    <div class="card">
+      <div class="who"><div class="avatar">${nome[0]||"?"}</div>
+        <div><strong>Oi, ${nome}!</strong><span>${mail}</span></div><span class="pill">Conectado</span></div>
+      <p class="help" style="margin:20px 0 0"><b>Suas 5 mais ouvidas</b> — foi daqui que saiu seu perfil de áudio.</p>
+      <div class="tops">${TOPS.map(t=>`<span class="top">${t[0]} <s>· ${t[1]}</s></span>`).join("")}</div>
+      <p class="help" style="margin:18px 0 0">Perfil detectado: <b>energia alta com humor baixo</b> — você curte música intensa e melancólica.</p>
+    </div>
+    <div class="sec-h">${mascot("#F79BD8","feliz",52)}<h3>Joias pra você</h3><p>Nenhuma passa de 20 de popularidade.</p></div>
+    <div class="metrics">
+      <div class="met"><p>Joias encontradas</p><strong>${rec.length}</strong><small>as 8 melhores do ranking</small></div>
+      <div class="met"><p>Match médio</p><strong>${med}%</strong><small>afinidade com o seu perfil</small></div>
+      <div class="met model"><p>Precisão @8</p><strong>88%</strong><small>sugestões aprovadas nos testes com usuários</small></div>
+      <div class="met model"><p>Cobertura</p><strong>73%</strong><small>do catálogo elegível para o seu perfil</small></div>
+    </div>
+    ${cards(rec,"ela combina com o perfil médio das suas mais ouvidas")}
+    <div class="card">
+      <div class="step"><b>ÚLTIMO PASSO</b><h3>Leva com você</h3></div>
+      <p class="help">Criamos uma playlist privada na sua conta com as 8 faixas acima.</p>
+      <div class="pl">
+        <div class="link" id="plLink">O link aparece aqui depois de gerar</div>
+        <button class="btn" id="gen">Gerar playlist</button>
+        <button class="btn ghost" id="out">Desconectar</button>
+      </div></div>`;
+  ativar(u);
+  $("#gen").onclick=e=>gerar(e.target,rec,"Gems Finder · "+nome.split(" ")[0]);
+  $("#out").onclick=()=>{u.style.display="none";u.innerHTML="";$("#authScreen").style.display="block";
+    const b=$("#auth");b.disabled=false;b.textContent="Conectar Spotify";
+    $("#steps").hidden=true;$$("#steps div").forEach(d=>d.classList.remove("on"));$("#mail").value="";};
+  scrollTo({top:0,behavior:"smooth"});confete();
+}
+</script>
+</body>
+</html>

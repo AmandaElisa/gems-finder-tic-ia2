@@ -1,0 +1,11 @@
+"""Paleta de cores do Gems Finder — idêntica ao :root do protótipo HTML."""
+
+LIMA = "#CFF25E"
+ROSA = "#F79BD8"
+PERI = "#B3BCF7"
+AZUL = "#3B45D9"
+VERDE = "#1DB954"
+VERDE_ESC = "#0E7A36"
+CREME = "#FAF6EC"
+TINTA = "#141414"
+MUTE = "#6E6A63"

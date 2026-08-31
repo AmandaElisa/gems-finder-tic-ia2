@@ -47,13 +47,38 @@ gems-finder/
 │   └── processed/            # Dados tratados
 ├── notebooks/
 │   └── gems_finder_eda.ipynb # Notebook principal de limpeza dos dados, exploração, métricas e modelo
+├── docs/
+│   └── gems-finder-prototipo.html # Protótipo HTML aprovado (especificação visual e funcional)
 ├── assets/                   # Imagens e recursos visuais para a documentação
-├── app.py                    # Código do protótipo navegável
+├── src/                      # Código do app componentizado
+│   ├── tema.py               # Paleta de cores compartilhada
+│   ├── dados.py              # Dados simulados e constantes de produto
+│   ├── recomendacao.py       # Lógica do modelo (match, garimpo, cobertura)
+│   └── ui/                   # Camada visual
+│       ├── estilo.py         # CSS (estilo "sticker" do protótipo)
+│       ├── mascote.py        # SVGs da mascote Pepita e logo
+│       ├── componentes.py    # Cartões, hero, passos, métricas, barras
+│       ├── estado.py         # Gerência do session_state
+│       ├── sidebar.py        # Marca, navegação e rodapé
+│       ├── resultados.py     # Joias encontradas + gerador de playlist
+│       ├── descobrir.py      # Página 1 — Descobrir
+│       └── conta.py          # Página 2 — Minha conta
+├── .streamlit/
+│   └── config.toml           # Tema claro e fontes (Fredoka/Figtree)
+├── app.py                    # Entrada do protótipo navegável (roteamento)
 ├── requirements.txt          # Dependências do projeto (bibliotecas Python)
 ├── .gitignore                # Arquivos ignorados pelo Git
 └── README.md                 # Documentação principal
 ```
 
+## ▶️ Como Rodar o Protótipo
+```bash
+pip install -r requirements.txt
+streamlit run app.py
+```
+O app abre em `http://localhost:8501`. Os dados são simulados dentro do próprio código (sem CSV externo nem credenciais) e a métrica *Precisão @8* é placeholder até a avaliação real do modelo.
+
 ## 🛠️ Tecnologias Utilizadas
 * **Python** (Pandas, NumPy, Scikit-Learn)
+* **Streamlit** (Protótipo navegável)
 * **Spotify Web API** (Integração OAuth e metadados)

@@ -1,0 +1,168 @@
+"""Lógica de recomendação do Gems Finder.
+
+Tradução fiel das funções match(), media(), centro() e rar() do protótipo
+HTML, mais o garimpo (filtro + ranking) e as métricas exibidas na UI.
+"""
+
+from __future__ import annotations
+
+import math
+import random
+import re
+from typing import Any, Mapping
+
+import numpy as np
+import pandas as pd
+
+from src.dados import ATRIBUTOS, PESOS, PRECISAO_8, PERFIL_USUARIO, TETO_CONTA, VIBES
+from src.tema import LIMA, PERI, ROSA
+
+
+def round_js(valor: float) -> int:
+    """Arredonda meio-para-cima, igual ao Math.round() do JavaScript."""
+    return math.floor(valor + 0.5)
+
+
+def match(faixa: Mapping[str, Any], alvo: Mapping[str, float]) -> int:
+    """Afinidade 31–99 entre uma faixa e um vetor-alvo de atributos de áudio.
+
+    Distância ponderada absoluta + bônus de obscuridade pela popularidade baixa.
+    """
+    pesos = np.array([PESOS[a] for a in ATRIBUTOS])
+    diferencas = np.abs(
+        np.array([float(faixa[a]) for a in ATRIBUTOS])
+        - np.array([float(alvo[a]) for a in ATRIBUTOS])
+    )
+    distancia = float(np.dot(pesos, diferencas))
+    bruto = 100 - distancia * 135 + (30 - float(faixa["popularidade"])) * 0.15
+    return max(31, min(99, round_js(bruto)))
+
+
+def media(faixas: pd.DataFrame) -> dict[str, float]:
+    """Média de cada atributo de áudio de um conjunto de faixas ou artistas."""
+    return {atributo: float(faixas[atributo].mean()) for atributo in ATRIBUTOS}
+
+
+def centro(catalogo: pd.DataFrame, genero: str) -> dict[str, float]:
+    """Centroide de atributos de áudio das faixas de um gênero."""
+    return media(catalogo[catalogo["genero"] == genero])
+
+
+def rar(popularidade: int) -> tuple[str, str]:
+    """Selo de raridade e a cor correspondente, a partir da popularidade."""
+    if popularidade <= 8:
+        return "Joia bruta", LIMA
+    if popularidade <= 17:
+        return "Rara", ROSA
+    return "Pouco ouvida", PERI
+
+
+def garimpar(base: pd.DataFrame, alvo: Mapping[str, float], teto: int,
+             limite: int = 8) -> pd.DataFrame:
+    """Filtra por popularidade <= teto, ranqueia por match e devolve as N melhores."""
+    elegiveis = base[base["popularidade"] <= teto].copy()
+    if elegiveis.empty:
+        return elegiveis.assign(match=pd.Series(dtype="int64"))
+    elegiveis["match"] = [match(linha, alvo) for _, linha in elegiveis.iterrows()]
+    # kind="stable" preserva a ordem do catálogo nos empates, como o sort do JS.
+    return (elegiveis.sort_values("match", ascending=False, kind="stable")
+            .head(limite).reset_index(drop=True))
+
+
+def cobertura(base: pd.DataFrame, teto: int) -> int:
+    """% do universo elegível que passa no filtro de popularidade."""
+    if base.empty:
+        return 0
+    return round_js(len(base[base["popularidade"] <= teto]) / len(base) * 100)
+
+
+def rotulo_profundidade(teto: int) -> str:
+    """Nome amigável da faixa de popularidade escolhida no slider."""
+    if teto <= 10:
+        return "Praticamente invisível"
+    if teto <= 20:
+        return "Bem underground"
+    if teto <= 30:
+        return "Conhecida em nicho"
+    return "Começando a aparecer"
+
+
+def humor_da_faixa(faixa: Mapping[str, Any]) -> str:
+    """Expressão da mascote que combina com os atributos da faixa."""
+    if float(faixa["valencia"]) < .3:
+        return "triste"
+    if float(faixa["energia"]) > .75:
+        return "treino"
+    if float(faixa["instrumentalidade"]) > .7:
+        return "foco"
+    return "chill"
+
+
+def novo_id_playlist(tamanho: int = 22) -> str:
+    """ID aleatório no formato usado pelas playlists do Spotify."""
+    alfabeto = "abcdefghijklmnopqrstuvwxyz0123456789"
+    return "".join(random.choice(alfabeto) for _ in range(tamanho))
+
+
+def email_valido(email: str) -> bool:
+    """Valida o e-mail com a mesma regex do protótipo."""
+    return bool(re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]+$", email.strip()))
+
+
+def nome_do_email(email: str) -> str:
+    """Deriva um nome apresentável a partir do trecho antes do @."""
+    local = re.sub(r"[._-]", " ", email.split("@")[0])
+    return re.sub(r"\b\w", lambda m: m.group().upper(), local).strip()
+
+
+def montar_resultado(catalogo: pd.DataFrame, artistas: pd.DataFrame, modo: str,
+                     vibe: str, genero: str, favoritos: list[str],
+                     teto: int) -> dict[str, Any]:
+    """Roda o garimpo no modo escolhido e devolve tudo que a UI precisa exibir."""
+    if modo == "Por vibe":
+        base, alvo = catalogo, VIBES[vibe]["alvo"]
+        titulo = f"Joias da vibe {VIBES[vibe]['nome']}"
+        ctx = f"os atributos de áudio batem com o alvo da vibe {VIBES[vibe]['nome']}"
+        precisao = PRECISAO_8[f"vibe_{vibe}"]
+    elif modo == "Por gênero":
+        base, alvo = catalogo[catalogo["genero"] == genero], centro(catalogo, genero)
+        titulo = f"Joias de {genero}"
+        ctx = f"ela representa bem o som médio do gênero {genero}"
+        precisao = PRECISAO_8["genero"]
+    else:
+        selecionados = artistas[artistas["artista"].isin(favoritos)]
+        base, alvo = catalogo, media(selecionados)
+        titulo = "Parecido com " + " + ".join(favoritos)
+        ctx = "o perfil sonoro dela chega perto de " + " e ".join(favoritos)
+        precisao = PRECISAO_8["artista"]
+
+    achadas = garimpar(base, alvo, teto)
+    return {
+        "titulo": titulo,
+        "ctx": ctx,
+        "precisao": precisao,
+        "cobertura": cobertura(base, teto),
+        "faixas": achadas.to_dict("records"),
+        "media_match": round_js(achadas["match"].mean()) if len(achadas) else 0,
+        "legenda": "Clique em cada faixa pra ver os atributos de áudio.",
+        "sub_match": "afinidade com o alvo escolhido",
+        "sub_cobertura": "do catálogo elegível cabe neste filtro",
+        "cor": VIBES[vibe]["cor"] if modo == "Por vibe" else LIMA,
+    }
+
+
+def montar_resultado_conta(catalogo: pd.DataFrame) -> dict[str, Any]:
+    """Garimpo do modo testador: cruza o perfil médio do usuário com o catálogo."""
+    achadas = garimpar(catalogo, PERFIL_USUARIO, TETO_CONTA)
+    return {
+        "titulo": "Joias pra você",
+        "ctx": "ela combina com o perfil médio das suas mais ouvidas",
+        "precisao": PRECISAO_8["conta"],
+        "cobertura": cobertura(catalogo, TETO_CONTA),
+        "faixas": achadas.to_dict("records"),
+        "media_match": round_js(achadas["match"].mean()) if len(achadas) else 0,
+        "legenda": f"Nenhuma passa de {TETO_CONTA} de popularidade.",
+        "sub_match": "afinidade com o seu perfil",
+        "sub_cobertura": "do catálogo elegível para o seu perfil",
+        "cor": ROSA,
+    }
