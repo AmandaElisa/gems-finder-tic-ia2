@@ -72,12 +72,31 @@ def mascote(cor: str, humor: str = "feliz", tamanho: int = 64) -> str:
     )
 
 
+# Ícone da marca (assets/icons_with_headset/icone-gems-finder-sem-borda.svg):
+# a Pepita de headset sem moldura nem fundo, pra assentar em qualquer cor.
+# Embutido inline porque o Streamlit não serve arquivos locais via <img src="...">.
 LOGO = (
-    '<svg width="34" height="38" viewBox="0 0 34 38" aria-hidden="true">'
-    '<path d="M17 2 4 12l13 24 13-24L17 2z" fill="#CFF25E" stroke="#141414" '
-    'stroke-width="2" stroke-linejoin="round"/>'
-    '<circle cx="13" cy="17" r="1.9" fill="#141414"/>'
-    '<circle cx="21" cy="17" r="1.9" fill="#141414"/>'
-    '<path d="M13.5 22c1.8 2 5.2 2 7 0" stroke="#141414" stroke-width="1.8" '
-    'fill="none" stroke-linecap="round"/></svg>'
+    '<svg class="gf-logo" width="41" height="46" viewBox="-7 15 70 79" '
+    'role="img" aria-label="Gems Finder">'
+    '<path d="M2 46C2 14 54 14 54 46" fill="none" stroke="#141414" '
+    'stroke-width="7" stroke-linecap="round"/>'
+    '<rect x="-4" y="40" width="13" height="26" rx="6.5" fill="#141414"/>'
+    '<rect x="47" y="40" width="13" height="26" rx="6.5" fill="#141414"/>'
+    '<path d="M13 74c-5 2-6 6-5 9M43 74c5 2 6 6 5 9" stroke="#141414" '
+    'stroke-width="2.6" fill="none" stroke-linecap="round"/>'
+    '<circle cx="8" cy="84" r="3.2" fill="#141414"/>'
+    '<circle cx="48" cy="84" r="3.2" fill="#141414"/>'
+    '<path d="M28 38 10 50l5 32h26l5-32L28 38z" fill="#CFF25E" stroke="#141414" '
+    'stroke-width="2.8" stroke-linejoin="round"/>'
+    '<path d="M28 38 10 50h36L28 38z" fill="#E4F8A8" stroke="#141414" '
+    'stroke-width="1.9" stroke-linejoin="round"/>'
+    '<circle cx="21" cy="60" r="2.7" fill="#141414"/>'
+    '<circle cx="35" cy="60" r="2.7" fill="#141414"/>'
+    '<path d="M21 67c4 5 10 5 14 0" stroke="#141414" stroke-width="2.3" '
+    'fill="none" stroke-linecap="round"/>'
+    '<path d="M23 82v6M33 82v6" stroke="#141414" stroke-width="2.4" '
+    'stroke-linecap="round"/>'
+    '<path d="M18.5 89h8M30.5 89h8" stroke="#141414" stroke-width="2.6" '
+    'stroke-linecap="round"/>'
+    '</svg>'
 )

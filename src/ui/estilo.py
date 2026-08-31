@@ -44,11 +44,16 @@ hr{border-color:rgba(20,20,20,.15);}
 [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked){background:var(--lima);}
 [data-testid="stSidebar"] [role="radiogroup"] label p{font-family:var(--f) !important;
   font-weight:700 !important;font-size:14.5px !important;}
-.gf-brand{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
-.gf-brand h1{font-family:var(--d);font-size:21px;font-weight:700;margin:0;}
+.gf-brand{display:flex;align-items:center;gap:11px;margin-bottom:6px;}
+.gf-logo{flex:none;display:block;}
+/* o streamlit aplica padding:20px 0 16px nos h1; zerar junta o subtítulo ao título */
+.gf-brand h1{font-family:var(--d);font-size:21px;font-weight:700;margin:0;padding:0;
+  line-height:1.18;}
 .gf-brand small{display:block;font-size:11.5px;color:var(--mute);font-weight:600;}
-.gf-nav-label{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);
-  font-weight:800;margin:14px 0 6px;}
+/* o seletor [data-testid="stMarkdownContainer"] p do streamlit vence .gf-nav-label
+   na especificidade e forçava 16px aqui; daí o !important no tamanho */
+[data-testid="stSidebar"] .gf-nav-label{font-size:12px !important;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--mute);font-weight:800;margin:14px 0 6px;}
 .gf-rail-foot{font-size:12px;color:var(--mute);line-height:1.7;
   border-top:2px dashed rgba(20,20,20,.2);padding-top:14px;margin-top:22px;}
 .gf-rail-foot b{color:var(--tinta);}
