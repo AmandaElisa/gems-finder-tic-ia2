@@ -24,6 +24,7 @@ PADROES: dict[str, Any] = {
     "res_conta": None,
     "pl_conta": None,
     "festa_conta": False,
+    "desconectou": False,
 }
 
 
@@ -41,3 +42,5 @@ def limpar_conta() -> None:
                   "res_conta", "pl_conta", "festa_conta"):
         st.session_state[chave] = PADROES[chave]
     st.session_state.pop("w_email", None)
+    # avisa a tela de login que a saída foi de propósito, pra dar retorno visual
+    st.session_state.desconectou = True
