@@ -105,6 +105,20 @@ hr{border-color:rgba(20,20,20,.15);}
 [class*="st-key-vibecard-"] .stButton > button{opacity:0;cursor:pointer;border-radius:20px;
   box-shadow:none;}
 
+/* ---------- chips de gênero e artista (st.buttons em linha com quebra) ---------- */
+[class*="st-key-chips-"]{flex-direction:row !important;flex-wrap:wrap;gap:10px;}
+[class*="st-key-chips-"] [data-testid="stElementContainer"]{width:auto !important;flex:0 0 auto;}
+[class*="st-key-chips-"] .stButton > button{font-family:var(--f) !important;font-weight:700;
+  padding:8px 16px;box-shadow:3px 3px 0 var(--tinta);}
+[class*="st-key-chips-"] .stButton > button:hover{transform:translate(-1px,-1px);
+  box-shadow:4px 4px 0 var(--tinta);}
+[class*="st-key-chips-"] .stButton > button p{font-family:var(--f) !important;
+  font-size:14px !important;font-weight:700 !important;}
+[class*="st-key-chips-"] .stButton > button[kind="primary"],
+[class*="st-key-chips-"] .stButton > button[data-testid="stBaseButton-primary"]{
+  background:var(--lima) !important;color:var(--tinta) !important;}
+.st-key-w_busca_art{max-width:340px;}
+
 /* ---------- profundidade ---------- */
 .gf-num{font-family:var(--d);font-size:44px;font-weight:700;line-height:1;}
 .gf-num span{font-size:15px;color:var(--mute);font-family:var(--f);font-weight:700;}
@@ -186,6 +200,9 @@ hr{border-color:rgba(20,20,20,.15);}
 [data-baseweb="input"], [data-baseweb="base-input"]{background:#fff !important;}
 [data-testid="stTextInput"] [data-baseweb="input"]{border:2px solid var(--tinta) !important;
   border-radius:99px;padding:2px 8px;}
+[data-testid="stTextInputRootElement"]{border:2px solid var(--tinta) !important;
+  border-radius:99px;background:#fff !important;padding:2px 10px;}
+[data-testid="stTextInputField"]{background:transparent !important;}
 [data-baseweb="select"] > div{border:2px solid var(--tinta) !important;border-radius:14px;
   background:#fff !important;}
 [data-baseweb="tag"]{background:var(--lima) !important;color:var(--tinta) !important;

@@ -44,30 +44,49 @@ def _selecao_vibe() -> None:
 
 
 def _selecao_genero(catalogo: pd.DataFrame, generos: list[str]) -> None:
-    """Selectbox com os 12 gêneros e a contagem de faixas de cada um."""
+    """Chips com os 12 gêneros e a contagem de faixas — o escolhido fica em lima."""
     contagem = catalogo["genero"].value_counts()
     atual = st.session_state.genero if st.session_state.genero in generos else generos[0]
-    escolha = st.selectbox(
-        "Gênero", generos, index=generos.index(atual),
-        format_func=lambda g: f"{g} · {contagem[g]} faixas",
-        key="w_genero", label_visibility="collapsed",
-    )
-    st.session_state.genero = escolha
+    with container_com_chave("chips-generos"):
+        for genero in generos:
+            escolhido = genero == atual
+            if st.button(f"{genero} :gray[{contagem[genero]} faixas]",
+                         key=f"chip_gen_{genero}",
+                         type="primary" if escolhido else "secondary"):
+                st.session_state.genero = genero
+                st.rerun()
 
 
 def _selecao_artista(artistas: pd.DataFrame) -> None:
-    """Multiselect de até 3 artistas de referência."""
-    nomes = artistas["artista"].tolist()
+    """Busca + chips de artistas de referência, com toggle e máximo de 3."""
     generos = dict(zip(artistas["artista"], artistas["genero"]))
-    escolha = st.multiselect(
-        "Artistas favoritos", nomes,
-        default=[n for n in st.session_state.favoritos if n in nomes],
-        max_selections=3, format_func=lambda n: f"{n} · {generos[n]}",
-        key="w_favoritos", label_visibility="collapsed",
-    )
-    st.session_state.favoritos = escolha
-    if escolha:
-        st.caption(f"{len(escolha)} de 3 escolhidos: {', '.join(escolha)}")
+    busca = st.text_input("Buscar artista", placeholder="Buscar artista…",
+                          key="w_busca_art", label_visibility="collapsed")
+    filtro = busca.strip().lower()
+    visiveis = [nome for nome in artistas["artista"]
+                if filtro in nome.lower() or filtro in generos[nome].lower()]
+    favoritos = st.session_state.favoritos
+
+    if not visiveis:
+        st.caption("Nenhum artista com esse nome no protótipo.")
+    else:
+        with container_com_chave("chips-artistas"):
+            for nome in visiveis:
+                escolhido = nome in favoritos
+                if st.button(f"{nome} :gray[{generos[nome]}]",
+                             key=f"chip_art_{nome}",
+                             type="primary" if escolhido else "secondary"):
+                    if escolhido:
+                        favoritos.remove(nome)
+                        st.rerun()
+                    elif len(favoritos) >= 3:
+                        st.toast("Máximo de 3 artistas", icon="✋")
+                    else:
+                        favoritos.append(nome)
+                        st.rerun()
+
+    if favoritos:
+        st.caption(f"{len(favoritos)} de 3 escolhidos: {', '.join(favoritos)}")
     else:
         st.caption("Escolha de 1 a 3 artistas.")
 
