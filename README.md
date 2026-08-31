@@ -22,7 +22,6 @@
 ### 👩🏻‍💻👨‍💻 Integrantes
 * <a href="https://github.com/AmandaElisa">Amanda Elisa de Oliveira Carvalho</a><br>
 * Arthur de Melo Garcia
-* Eric Luiz Rodrigues de França
 * Maria Carolina Martins Frota
 * <a href="https://github.com/samarawwleticia">Samara Letícia Alves dos Santos</a><br>
 * <a href="https://github.com/wincsSI">Wingrid da Costa Silva</a><br>
