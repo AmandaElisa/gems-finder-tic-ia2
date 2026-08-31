@@ -1,9 +1,15 @@
-# 💎 Gems Finder
-
-> Garimpando faixas underground e subestimadas no catálogo do Spotify através de inteligência de dados e perfis sonoros (*moods*).
-
 <p align="center">
   <img src="assets/logo-gems-finder.svg" width="520" alt="Gems Finder">
+</p>
+
+<h2 align="center">💎 Gems Finder</h2>
+
+<p align="center">
+  <b>Garimpando faixas underground e subestimadas no catálogo do Spotify através de inteligência de dados e perfis sonoros (<i>moods</i>).</b>
+</p>
+
+<p align="center">
+  <img src="http://img.shields.io/static/v1?label=status&message=EM%20DESENVOLVIMENTO&color=GREEN&style=for-the-badge"/>
 </p>
 
 ---
@@ -13,13 +19,13 @@
 * **Desafio:** Nano-Challenge: Spotify Data
 * **Grupo:** Grupo 9
 
-### 👥 Integrantes
-* Amanda Elisa de Oliveira Carvalho
+### 👩🏻‍💻👨‍💻 Integrantes
+* <a href="https://github.com/AmandaElisa">Amanda Elisa de Oliveira Carvalho</a><br>
 * Arthur de Melo Garcia
 * Eric Luiz Rodrigues de França
 * Maria Carolina Martins Frota
-* Samara Letícia Alves dos Santos
-* Wingrid da Costa Silva
+* <a href="https://github.com/samarawwleticia">Samara Letícia Alves dos Santos</a><br>
+* <a href="https://github.com/wincsSI">Wingrid da Costa Silva</a><br>
 
 ---
 
