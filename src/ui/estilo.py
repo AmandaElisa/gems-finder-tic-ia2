@@ -281,6 +281,15 @@ hr{border-color:rgba(20,20,20,.15);}
   .gf-title{font-size:29px;}
   .gf-metrics{grid-template-columns:1fr 1fr;}
 }
+/* em tela estreita os três modos não caem numa linha e a pílula quebrava no
+   meio; vira uma lista vertical de largura cheia, que lê como controle */
+@media (max-width:640px){
+  [data-testid="stButtonGroup"]{flex-direction:column;align-items:stretch;
+    width:100%;border-radius:20px;flex-wrap:nowrap;}
+  [data-testid="stButtonGroup"] button{width:100%;justify-content:center;
+    padding:10px 14px !important;}
+  .gf-metrics{grid-template-columns:1fr;}
+}
 @media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
 </style>
 """
