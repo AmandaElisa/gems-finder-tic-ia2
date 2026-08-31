@@ -35,6 +35,11 @@ def _conectar(email: str, quem: dict | None = None, token: str = "",
     st.rerun()
 
 
+def voltando_do_spotify() -> bool:
+    """True quando a URL traz o retorno do consentimento (?code= ou ?error=)."""
+    return bool(st.query_params.get("code") or st.query_params.get("error"))
+
+
 def _processar_callback(cfg: dict[str, str]) -> None:
     """Troca o ?code= devolvido pelo Spotify por token e monta a sessão real."""
     if st.session_state.conectado:
@@ -136,6 +141,7 @@ def _tela_conectada() -> None:
 
     if st.button("Desconectar", key="btn_out"):
         limpar_conta()
+        st.toast("Desconectei da sua conta. Até a próxima!", icon="👋")
         st.rerun()
 
 
@@ -148,6 +154,10 @@ def pagina_conta() -> None:
     cfg = spotify.config()
     if cfg:
         _processar_callback(cfg)
+    if st.session_state.desconectou:
+        st.session_state.desconectou = False
+        st.success("Pronto, desconectei da sua conta — não guardei nada seu por aqui. "
+                   "É só entrar de novo quando quiser garimpar mais.", icon="👋")
     if st.session_state.conectado:
         _tela_conectada()
     elif cfg:
