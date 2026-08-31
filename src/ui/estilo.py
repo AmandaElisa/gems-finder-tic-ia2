@@ -28,6 +28,10 @@ html, body, .stApp, .stMarkdown, p, li, label, input, button, textarea{font-fami
 h1,h2,h3,h4{font-family:var(--d);letter-spacing:-.01em;color:var(--tinta);}
 :focus-visible{outline:3px solid var(--azul);outline-offset:3px;border-radius:8px;}
 hr{border-color:rgba(20,20,20,.15);}
+/* o streamlit põe margin-bottom:-16px no markdown pra engolir a margem do último
+   <p>; nos blocos de HTML cru (que terminam em div/ul) isso corta 16px do
+   conteúdo e faz os cards transbordarem — neutraliza só nesses casos */
+[data-testid="stMarkdownContainer"]:has(> :last-child:not(p)){margin-bottom:0 !important;}
 
 /* ---------- sidebar ---------- */
 [data-testid="stSidebar"]{background:var(--creme);border-right:2px solid var(--tinta);}
@@ -52,19 +56,19 @@ hr{border-color:rgba(20,20,20,.15);}
 /* ---------- cartões sticker ---------- */
 [class*="st-key-cartao-"]{
   background:#fff;border:2px solid var(--tinta);border-radius:22px;
-  padding:20px 24px;box-shadow:5px 5px 0 var(--tinta);margin-bottom:22px;
+  padding:20px 24px;box-shadow:5px 5px 0 var(--tinta);margin-bottom:6px;
 }
 /* respiro entre os elementos dentro dos cartões (o padrão vinha grudado) */
 [class*="st-key-cartao-"] > div[data-testid="stVerticalBlock"]{gap:16px;}
 [class*="st-key-gema-"]{
   background:#fff;border:2px solid var(--tinta);border-radius:20px;
-  padding:14px 18px 4px;box-shadow:4px 4px 0 var(--tinta);margin-bottom:16px;
+  padding:14px 18px 4px;box-shadow:4px 4px 0 var(--tinta);margin-bottom:0;
 }
 .gf-card{background:#fff;border:2px solid var(--tinta);border-radius:22px;padding:22px 24px;
-  box-shadow:5px 5px 0 var(--tinta);margin-bottom:22px;}
+  box-shadow:5px 5px 0 var(--tinta);margin-bottom:6px;}
 
 /* ---------- hero ---------- */
-.gf-hero{display:flex;align-items:center;gap:22px;flex-wrap:wrap;margin-bottom:26px;}
+.gf-hero{display:flex;align-items:center;gap:22px;flex-wrap:wrap;margin-bottom:8px;}
 .gf-title{font-family:var(--d);font-size:40px;font-weight:700;letter-spacing:-.02em;
   margin:0;line-height:1.08;}
 .gf-lede{color:var(--mute);margin:8px 0 0;max-width:56ch;font-size:15.5px;}
@@ -78,9 +82,9 @@ hr{border-color:rgba(20,20,20,.15);}
 .gf-step b{font-size:11px;font-weight:800;letter-spacing:.08em;background:var(--lima);
   border:2px solid var(--tinta);border-radius:99px;padding:2px 10px;}
 .gf-step h3{font-family:var(--d);font-size:19px;font-weight:600;margin:0;}
-.gf-help{color:var(--mute);font-size:13.5px;margin:0 0 10px;}
+.gf-help{color:var(--mute);font-size:13.5px;margin:0 0 16px;}
 .gf-help b{color:var(--tinta);}
-.gf-status{font-size:13.5px;color:var(--mute);margin:0 0 12px;}
+.gf-status{font-size:13.5px;color:var(--mute);margin:0 0 16px;}
 .gf-status b{color:var(--tinta);font-weight:800;}
 
 /* ---------- vibes (o card inteiro é o botão) ---------- */
@@ -197,8 +201,12 @@ hr{border-color:rgba(20,20,20,.15);}
 [data-testid="stButtonGroup"] button:hover{color:var(--tinta) !important;transform:none;}
 [data-testid="stButtonGroup"] button p{font-weight:700 !important;font-size:14px !important;
   color:inherit !important;}
+[data-testid="stButtonGroup"] button[aria-checked="true"],
+[data-testid="stButtonGroup"] button[data-selected="true"],
 [data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_controlActive"]{
   background:var(--tinta) !important;}
+[data-testid="stButtonGroup"] button[aria-checked="true"] p,
+[data-testid="stButtonGroup"] button[data-selected="true"] p,
 [data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_controlActive"] p{
   color:#fff !important;}
 [data-testid="stSlider"] [role="slider"]{background:var(--rosa) !important;
