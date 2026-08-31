@@ -16,7 +16,6 @@
 ### 👥 Integrantes
 * Amanda Elisa de Oliveira Carvalho
 * Arthur de Melo Garcia
-* Eric Luiz Rodrigues de França
 * Maria Carolina Martins Frota
 * Samara Letícia Alves dos Santos
 * Wingrid da Costa Silva
