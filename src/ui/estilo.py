@@ -281,13 +281,20 @@ hr{border-color:rgba(20,20,20,.15);}
   .gf-title{font-size:29px;}
   .gf-metrics{grid-template-columns:1fr 1fr;}
 }
-/* em tela estreita os três modos não caem numa linha e a pílula quebrava no
-   meio; vira uma lista vertical de largura cheia, que lê como controle */
+/* em tela estreita os três modos não cabem na linha e o flex-wrap partia a
+   pílula no meio; mantém a cara de tabs comprimindo fonte e padding, e deixa
+   correr no eixo x (sem barra visível) se ainda faltar espaço */
 @media (max-width:640px){
-  [data-testid="stButtonGroup"]{flex-direction:column;align-items:stretch;
-    width:100%;border-radius:20px;flex-wrap:nowrap;}
-  [data-testid="stButtonGroup"] button{width:100%;justify-content:center;
-    padding:10px 14px !important;}
+  /* o flex que envolve os botões é um div interno do stButtonGroup, não ele
+     mesmo — é nele que o nowrap tem que entrar, senão a pílula parte no meio */
+  [data-testid="stButtonGroup"], [data-testid="stButtonGroup"] > div{
+    flex-wrap:nowrap !important;max-width:100%;overflow-x:auto;
+    scrollbar-width:none;-ms-overflow-style:none;}
+  [data-testid="stButtonGroup"]::-webkit-scrollbar,
+  [data-testid="stButtonGroup"] > div::-webkit-scrollbar{display:none;}
+  [data-testid="stButtonGroup"] button{flex:none;padding:7px 12px !important;}
+  [data-testid="stButtonGroup"] button p{font-size:12px !important;
+    letter-spacing:-.01em;}
   .gf-metrics{grid-template-columns:1fr;}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
