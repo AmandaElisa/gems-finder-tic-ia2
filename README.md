@@ -47,8 +47,13 @@ gems-finder/
 │   └── processed/            # Dados tratados
 ├── notebooks/
 │   └── gems_finder_eda.ipynb # Notebook principal de limpeza dos dados, exploração, métricas e modelo
+├── CLAUDE.md                 # Orquestração: contexto, ciclo de trabalho e convenções
 ├── docs/
-│   └── gems-finder-prototipo.html # Protótipo HTML aprovado (especificação visual e funcional)
+│   ├── gems-finder-prototipo.html # Protótipo HTML aprovado (especificação visual e funcional)
+│   ├── constitution.md       # Princípios do projeto
+│   ├── templates/            # Modelos de spec, plano e tarefas
+│   └── specs/                # Uma pasta por trabalho (spec, plano, tarefas)
+├── tests/                    # Suíte pytest da lógica de recomendação
 ├── assets/                   # Imagens e recursos visuais para a documentação
 ├── src/                      # Código do app componentizado
 │   ├── tema.py               # Paleta de cores compartilhada
