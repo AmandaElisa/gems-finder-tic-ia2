@@ -1,0 +1,4 @@
+# Test-only dependencies. Deliberately NOT in requirements.txt, which
+# Streamlit Community Cloud installs on deploy.
+-r requirements.txt
+pytest>=7.0
