@@ -165,15 +165,49 @@ that genre alone is too coarse.
 Numeric Spotify attributes define each track's technical DNA: `danceability`,
 `energy`, `valence`, `acousticness`, `instrumentalness`.
 
-Feature choice is **empirical, not fixed**. The techniques applied:
+Feature choice is **empirical, not fixed**. Seven filter techniques were
+considered. Each was tested against the actual dataset before being adopted,
+and **five do not apply** — recording why is worth more than running all seven
+badly.
 
-| Technique | What it decides |
-|---|---|
-| Variance Threshold, Mean Absolute Difference | Drop attributes with too little variability to separate anything |
-| Pearson's correlation coefficient | Find linear relationships between continuous attributes and avoid multicollinearity |
-| Information Gain, Fisher's Score | Measure each attribute's predictive relevance to the mood and popularity groupings |
+| Technique | Applies? | Evidence, measured on `data/raw/dataset_spotify_raw.csv` |
+|---|---|---|
+| Dispersion ratio | **No — 0 of 9 columns** | The geometric mean needs strictly positive values. `loudness` has 113.910 negative values of 114.000; `instrumentalness` has 38.763 zeros. Every attribute fails |
+| Variance Threshold | **Not useful** | It measures unit, not information: `tempo` var = 898,7 · `loudness` var = 25,3 · every other attribute < 0,12. A 0,01 threshold cuts nothing; any threshold that cuts something cuts by scale, keeping only tempo and loudness |
+| Mean Absolute Difference | **Not useful** | Same scale problem |
+| Chi-square | **No** | Requires non-negative features and a categorical target. `loudness` is negative in 113.910 rows; binning to fix it destroys the continuous space the model works in |
+| Pearson's correlation | **Yes** | Applies directly to continuous attributes — and produces the actionable finding below |
+| Information Gain | **Yes, but the target decides the answer** | Target = `track_genre`: `acousticness` MI = 0,515, `energy` 0,438, `loudness` 0,373. Target = hidden (`popularity <= 10`): everything falls to 0,02–0,06. The rankings *invert* — `danceability` is 4th by genre (0,370) and **last** by hidden (0,020) |
+| Fisher's Score | **Yes, same caveat** | Needs class labels; inherits the same target-choice problem |
 
-The final feature set is whatever these tests support. This spec deliberately
+**Two findings that change decisions.**
+
+**1. The current model double-counts one axis.** `energy` × `acousticness` have
+|r| = **0,734**, and both are among the app's five attributes, weighted 0,25
+and 0,15 in `src/dados.py::PESOS`. So **40% of the total weight sits on two
+attributes that are 73% redundant**, and the distance counts that sonic axis
+twice. (`energy` × `loudness` is higher still at 0,762, but `loudness` is not
+in the model.) Either drop one or reduce their combined weight — and either way,
+say so in the model's documentation.
+
+**2. Audio does not predict popularity, so do not select on it.** The strongest
+correlation between any attribute and `popularity` is |r| = **0,095**
+(`instrumentalness`, negative). Selecting features by relevance to popularity
+would be selecting on noise. It would also be the wrong criterion: the engine
+is unsupervised cosine similarity, not popularity prediction. What matters is
+which attributes define the perceptual space the listener navigates — which is
+what Information Gain against `track_genre` measures, genre being the only real
+label the dataset carries.
+
+This second finding **supports the project's premise** rather than threatening
+it: if popularity is not explained by audio characteristics, then genuinely
+good low-popularity tracks exist to be found. That is the whole business case,
+and it now has a number behind it.
+
+**Adopted:** Pearson (for multicollinearity among attributes) and Information
+Gain against `track_genre` (for perceptual relevance). The other five are
+rejected on the evidence above. The final feature set is whatever these two
+support, decided in the notebook and committed there — this spec deliberately
 does not name it (§2).
 
 ### 6.3 Graph and vector similarity
