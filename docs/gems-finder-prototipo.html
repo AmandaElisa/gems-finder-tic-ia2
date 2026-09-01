@@ -66,6 +66,10 @@ h2.title{font-family:var(--d);font-size:40px;font-weight:700;letter-spacing:-.02
 .seg button{border:0;background:none;border-radius:99px;padding:9px 20px;font-weight:700;font-size:14px;color:var(--mute);cursor:pointer;transition:.14s}
 .seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
 
+.grupo-lbl{font-family:var(--d);font-size:14.5px;font-weight:600;margin:20px 0 10px;display:flex;align-items:baseline;gap:8px}
+.grupo-lbl:first-of-type{margin-top:4px}
+.grupo-lbl span{font-family:var(--f);font-size:11.5px;font-weight:600;color:var(--mute)}
+
 /* vibes */
 .vibes{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:18px}
 .vibe{border:2px solid var(--ink);border-radius:20px;padding:16px 14px 14px;cursor:pointer;text-align:center;transition:.16s;background:#fff;box-shadow:4px 4px 0 var(--ink)}
@@ -239,24 +243,18 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;border:2px solid var(
 
       <div class="card">
         <div class="step"><b>PASSO 1</b><h3>De onde a gente parte?</h3></div>
-        <p class="help">Três caminhos pro mesmo tesouro: pela <b>sensação</b> que a música dá, pelo <b>gênero</b>, ou pelos <b>artistas que você já ama</b>.</p>
-        <div class="seg" id="seg">
-          <button data-m="vibe" aria-pressed="true">Por vibe</button>
-          <button data-m="genero" aria-pressed="false">Por gênero</button>
-          <button data-m="artista" aria-pressed="false">Por artista favorito</button>
-        </div>
+        <p class="help">Combine quantos critérios quiser: <b>vibe</b>, <b>gênero</b> e <b>artistas que você já ama</b>. Quanto mais você escolher, mais fino fica o garimpo.</p>
 
-        <div id="selVibe"><div class="vibes" id="vibes"></div></div>
+        <p class="grupo-lbl">Vibe <span>opcional</span></p>
+        <div class="vibes" id="vibes"></div>
 
-        <div id="selGenero" style="display:none">
-          <div class="chips" id="generos"></div>
-        </div>
+        <p class="grupo-lbl">Gênero <span>opcional</span></p>
+        <div class="chips" id="generos"></div>
 
-        <div id="selArtista" style="display:none">
-          <input class="search" id="buscaArt" placeholder="Buscar artista…" aria-label="Buscar artista" />
-          <div class="chips" id="artistas"></div>
-          <p class="count" id="artCount">Escolha de 1 a 3 artistas.</p>
-        </div>
+        <p class="grupo-lbl">Artista favorito <span>opcional · até 3</span></p>
+        <input class="search" id="buscaArt" placeholder="Buscar artista…" aria-label="Buscar artista" />
+        <div class="chips" id="artistas"></div>
+        <p class="count" id="artCount">Nenhum artista escolhido ainda.</p>
       </div>
 
       <div class="card">
@@ -386,7 +384,7 @@ const GENS=[...new Set(CAT.map(t=>t.gen))].sort((a,b)=>a.localeCompare(b,"pt"));
 const TOPS=[["Meia-Noite em Copacabana","Dora Lima"],["Antídoto","Feras do Cerrado"],["Vista Cansada","Otávio Rey"],["Linha Amarela","Bruno Sacchi"],["Nunca Foi Sorte","MC Vitrine"]];
 
 const $=(s,c=document)=>c.querySelector(s), $$=(s,c=document)=>[...c.querySelectorAll(s)];
-let modo="vibe", vibe="foco", genero=GENS[0], favs=[], teto=18;
+let vibesSel=new Set(), generosSel=new Set(), favs=[], teto=18;
 
 const match=(t,a)=>{let d=0;for(const k in W)d+=W[k]*Math.abs(t[k]-a[k]);
   return Math.max(31,Math.min(99,Math.round(100-d*135+(30-t.pop)*.15)));};
@@ -447,22 +445,26 @@ $$(".nav button").forEach(b=>b.onclick=()=>{
   $("#view-"+b.dataset.view).classList.add("on");scrollTo({top:0,behavior:"smooth"});
 });
 
-/* seletores */
+/* seletores — vibe, gênero e artista agora se combinam livremente */
 $("#vibes").innerHTML=Object.entries(VIBES).map(([k,v])=>
-  `<button class="vibe" data-v="${k}" aria-pressed="${k==="foco"}" style="background:${k==="foco"?v.cor:"#fff"}">
+  `<button class="vibe" data-v="${k}" aria-pressed="false" style="background:#fff">
     ${mascot(v.cor,v.mood,56)}<strong>${v.nome}</strong><span>${v.desc}</span></button>`).join("");
 function pintaVibes(){$$(".vibe").forEach(b=>{
   const v=VIBES[b.dataset.v];b.style.background=b.getAttribute("aria-pressed")==="true"?v.cor:"#fff";});}
 $$(".vibe").forEach(b=>b.onclick=()=>{
-  $$(".vibe").forEach(x=>x.setAttribute("aria-pressed","false"));
-  b.setAttribute("aria-pressed","true");vibe=b.dataset.v;pintaVibes();status();});
+  const k=b.dataset.v, on=b.getAttribute("aria-pressed")==="true";
+  b.setAttribute("aria-pressed",!on);
+  if(on) vibesSel.delete(k); else vibesSel.add(k);
+  pintaVibes();status();});
 
-$("#generos").innerHTML=GENS.map((n,i)=>{
+$("#generos").innerHTML=GENS.map((n)=>{
   const q=CAT.filter(t=>t.gen===n).length;
-  return `<button class="chip" data-g="${n}" aria-pressed="${i===0}">${n} <small>${q} faixas</small></button>`;}).join("");
+  return `<button class="chip" data-g="${n}" aria-pressed="false">${n} <small>${q} faixas</small></button>`;}).join("");
 $$("#generos .chip").forEach(b=>b.onclick=()=>{
-  $$("#generos .chip").forEach(x=>x.setAttribute("aria-pressed","false"));
-  b.setAttribute("aria-pressed","true");genero=b.dataset.g;status();});
+  const n=b.dataset.g, on=b.getAttribute("aria-pressed")==="true";
+  b.setAttribute("aria-pressed",!on);
+  if(on) generosSel.delete(n); else generosSel.add(n);
+  status();});
 
 function renderArtistas(filtro=""){
   const f=filtro.toLowerCase();
@@ -475,19 +477,11 @@ function renderArtistas(filtro=""){
     else if(favs.length>=3){toast("Máximo de 3 artistas");return;}
     else favs.push(n);
     b.setAttribute("aria-pressed",favs.includes(n));
-    $("#artCount").textContent=favs.length?`${favs.length} de 3 escolhidos: ${favs.join(", ")}`:"Escolha de 1 a 3 artistas.";
+    $("#artCount").textContent=favs.length?`${favs.length} de 3 escolhidos: ${favs.join(", ")}`:"Nenhum artista escolhido ainda.";
     status();});
 }
 renderArtistas();
 $("#buscaArt").oninput=e=>renderArtistas(e.target.value);
-
-$$("#seg button").forEach(b=>b.onclick=()=>{
-  $$("#seg button").forEach(x=>x.setAttribute("aria-pressed","false"));
-  b.setAttribute("aria-pressed","true");modo=b.dataset.m;
-  $("#selVibe").style.display=modo==="vibe"?"block":"none";
-  $("#selGenero").style.display=modo==="genero"?"block":"none";
-  $("#selArtista").style.display=modo==="artista"?"block":"none";
-  status();});
 
 /* profundidade */
 const strata=$("#strata");
@@ -499,19 +493,22 @@ $("#pop").oninput=e=>{teto=+e.target.value;$("#popVal").innerHTML=teto+"<span> /
   $("#popTxt").textContent=teto<=10?"Praticamente invisível":teto<=20?"Bem underground":teto<=30?"Conhecida em nicho":"Começando a aparecer";
   pintar();status();};
 function status(){
-  const alvo=modo==="vibe"?`vibe <b>${VIBES[vibe].nome}</b>`
-    :modo==="genero"?`gênero <b>${genero}</b>`
-    :favs.length?`parecido com <b>${favs.join(", ")}</b>`:`<b>escolha pelo menos um artista</b>`;
-  $("#digStatus").innerHTML=`Buscando ${alvo}, com popularidade até <b>${teto}</b>.`;
+  const partes=[];
+  if(vibesSel.size) partes.push(`vibe <b>${[...vibesSel].map(k=>VIBES[k].nome).join(" + ")}</b>`);
+  if(generosSel.size) partes.push(`gênero <b>${[...generosSel].join(" + ")}</b>`);
+  if(favs.length) partes.push(`parecido com <b>${favs.join(", ")}</b>`);
+  const desc=partes.length?partes.join(", "):`<b>escolha ao menos um critério acima</b>`;
+  $("#digStatus").innerHTML=`Buscando por ${desc}, com popularidade até <b>${teto}</b>.`;
 }
 status();
 
 /* garimpo */
 $("#dig").onclick=()=>{
-  if(modo==="artista"&&!favs.length){toast("Escolha pelo menos um artista");return;}
+  if(!vibesSel.size && !generosSel.size && !favs.length){toast("Escolha vibe, gênero ou artista pra garimpar");return;}
   const b=$("#dig");b.disabled=true;b.textContent="Garimpando…";
   setTimeout(()=>{b.disabled=false;b.textContent="Garimpar joias";render();},1150);
 };
+
 
 function cards(list,ctx){
   return `<div class="grid">${list.map((t,i)=>{
@@ -533,26 +530,40 @@ function ativar(scope){$$(".gem",scope).forEach(el=>{
   el.onclick=t;el.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();t();}};});}
 
 function render(){
-  let base=CAT,alvo,titulo,p10,ctx,universo;
-  if(modo==="vibe"){
-    alvo=VIBES[vibe].alvo;p10=VIBES[vibe].p10;titulo=`Joias da vibe ${VIBES[vibe].nome}`;
-    ctx=`os atributos de áudio batem com o alvo da vibe ${VIBES[vibe].nome}`;
-  }else if(modo==="genero"){
-    base=CAT.filter(t=>t.gen===genero);alvo=centro(genero);p10=86;titulo=`Joias de ${genero}`;
-    ctx=`ela representa bem o som médio do gênero ${genero}`;
-  }else{
-    const sel=ARTISTAS.filter(a=>favs.includes(a.n));
-    alvo=media(sel);p10=90;titulo=`Parecido com ${favs.join(" + ")}`;
-    ctx=`o perfil sonoro dela chega perto de ${favs.join(" e ")}`;
+  // gênero(s) selecionado(s) filtram o universo de busca; vibe(s) e artista(s) formam o alvo
+  const base = generosSel.size ? CAT.filter(t=>generosSel.has(t.gen)) : CAT;
+  const universo = base.length;
+
+  const alvos=[], titulos=[], ctxPartes=[];
+  if(vibesSel.size){
+    const vs=[...vibesSel];
+    alvos.push(media(vs.map(k=>VIBES[k].alvo)));
+    titulos.push(vs.map(k=>VIBES[k].nome).join(" + "));
+    ctxPartes.push(`bate com a vibe ${vs.map(k=>VIBES[k].nome).join(" + ")}`);
   }
-  universo=base.length;
+  if(generosSel.size){
+    const gs=[...generosSel];
+    alvos.push(media(gs.map(g=>centro(g))));
+    titulos.push(gs.join(" + "));
+    ctxPartes.push(`representa o som de ${gs.join(" + ")}`);
+  }
+  if(favs.length){
+    alvos.push(media(ARTISTAS.filter(a=>favs.includes(a.n))));
+    titulos.push(`parecido com ${favs.join(" + ")}`);
+    ctxPartes.push(`chega perto de ${favs.join(" e ")}`);
+  }
+  const alvo = media(alvos);
+  const titulo = `Joias — ${titulos.join(" · ")}`;
+  const ctx = ctxPartes.join(" e ");
+  const p10 = 84 + Math.min(7, alvos.length*3); // mais critérios combinados, mais preciso o alvo
+
   const found=base.filter(t=>t.pop<=teto).map(t=>({...t,m:match(t,alvo)})).sort((a,b)=>b.m-a.m).slice(0,8);
   const box=$("#results");
 
   if(!found.length){
     box.innerHTML=`<div class="card empty">${mascot("#B3BCF7","triste",70)}
       <p>Nada nessa profundidade.</p>
-      <p class="help" style="margin-top:6px">Aumenta a popularidade máxima no passo 2 ou troca a escolha do passo 1.</p></div>`;
+      <p class="help" style="margin-top:6px">Aumenta a popularidade máxima no passo 2 ou ajusta os critérios do passo 1.</p></div>`;
     box.scrollIntoView({behavior:"smooth",block:"start"});return;
   }
   const med=Math.round(found.reduce((s,t)=>s+t.m,0)/found.length);
