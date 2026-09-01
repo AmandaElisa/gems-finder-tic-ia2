@@ -17,9 +17,11 @@ import pytest
 from src.dados import ATRIBUTOS
 from src.recomendacao import (
     cobertura,
+    email_valido,
     garimpar,
     humor_da_faixa,
     match,
+    nome_do_email,
     rar,
     rotulo_profundidade,
     round_js,
@@ -178,3 +180,35 @@ class TestCobertura:
 
     def test_empty_base_returns_zero_instead_of_dividing_by_zero(self) -> None:
         assert cobertura(pd.DataFrame(), 20) == 0
+
+
+class TestEmailValido:
+    @pytest.mark.parametrize("email", [
+        "amanda@unb.br",
+        "  amanda@unb.br  ",              # stripped before matching
+        "a.b-c_d@aluno.unb.br",
+    ])
+    def test_accepts(self, email: str) -> None:
+        assert email_valido(email)
+
+    @pytest.mark.parametrize("email", [
+        "amanda@unb",                     # no dot in the domain
+        "amanda unb@x.br",                # inner space
+        "@unb.br",
+        "amanda@",
+        "amanda@@unb.br",
+        "",
+    ])
+    def test_rejects(self, email: str) -> None:
+        assert not email_valido(email)
+
+
+class TestNomeDoEmail:
+    @pytest.mark.parametrize("email, esperado", [
+        ("amanda.elisa@aluno.unb.br", "Amanda Elisa"),
+        ("maria-carolina@x.br", "Maria Carolina"),
+        ("wingrid_costa@x.br", "Wingrid Costa"),
+        ("arthur@x.br", "Arthur"),
+    ])
+    def test_derives_a_presentable_name(self, email: str, esperado: str) -> None:
+        assert nome_do_email(email) == esperado
