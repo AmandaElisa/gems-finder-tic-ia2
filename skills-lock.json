@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "data-analysis-jupyter": {
+      "source": "mindrally/skills",
+      "sourceType": "github",
+      "skillPath": "data-analysis-jupyter/SKILL.md",
+      "computedHash": "b287cbbb3eb8fa54e93571dc2eea56c07cdcd8d1f85be16954e612c92cc76ac0"
+    },
     "debugging-streamlit": {
       "source": "streamlit/streamlit",
       "sourceType": "github",
@@ -12,6 +18,18 @@
       "sourceType": "github",
       "skillPath": "developing-with-streamlit/SKILL.md",
       "computedHash": "128c0acf5db60266b0fb0440c4064fccb7adba0a90d07259b4adddf0e4f39c78"
+    },
+    "docker": {
+      "source": "mindrally/skills",
+      "sourceType": "github",
+      "skillPath": "docker/SKILL.md",
+      "computedHash": "d7cde6ea1ffb9730f2864351ab3de766830f8734d631c9326b865969d5a86460"
+    },
+    "fastapi-python": {
+      "source": "mindrally/skills",
+      "sourceType": "github",
+      "skillPath": "fastapi-python/SKILL.md",
+      "computedHash": "4521c6090735152b7b8df670cefe5c1c6d1dcaa115de67bb96e74ebf802d4f24"
     },
     "python-testing-patterns": {
       "source": "wshobson/agents",
