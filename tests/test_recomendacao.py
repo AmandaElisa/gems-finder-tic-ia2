@@ -11,10 +11,13 @@ and UI copy stays Portuguese.
 
 from __future__ import annotations
 
+import pandas as pd
 import pytest
 
 from src.dados import ATRIBUTOS
 from src.recomendacao import (
+    cobertura,
+    garimpar,
     humor_da_faixa,
     match,
     rar,
@@ -35,6 +38,11 @@ def track(popularidade: int = 30, **atributos: float) -> dict[str, float]:
     silently skewing its expected score.
     """
     return {**NEUTRAL, **atributos, "popularidade": popularidade}
+
+
+def catalog(*linhas: dict) -> pd.DataFrame:
+    """A catalogue DataFrame from hand-written rows, in the given order."""
+    return pd.DataFrame(list(linhas))
 
 
 class TestRoundJs:
@@ -111,3 +119,62 @@ class TestHumorDaFaixa:
         # All three comparisons are strict, so the exact threshold is NOT a hit.
         limite = track(valencia=.3, energia=.75, instrumentalidade=.7)
         assert humor_da_faixa(limite) == "chill"
+
+
+class TestGarimpar:
+    def test_drops_tracks_above_the_ceiling(self) -> None:
+        base = catalog(
+            {**track(popularidade=5), "faixa": "A"},
+            {**track(popularidade=50), "faixa": "B"},
+        )
+        assert list(garimpar(base, NEUTRAL, teto=20)["faixa"]) == ["A"]
+
+    def test_empty_result_still_has_an_int64_match_column(self) -> None:
+        # Callers read result["match"] unconditionally; a missing column or an
+        # object dtype would break them.
+        base = catalog({**track(popularidade=90), "faixa": "A"})
+        resultado = garimpar(base, NEUTRAL, teto=20)
+        assert resultado.empty
+        assert resultado["match"].dtype == "int64"
+
+    def test_ties_keep_catalog_order(self) -> None:
+        # Identical attributes and popularity give an identical score, so only
+        # the stable sort decides the order.
+        base = catalog(
+            {**track(popularidade=5), "faixa": "first"},
+            {**track(popularidade=5), "faixa": "second"},
+        )
+        assert list(garimpar(base, NEUTRAL, teto=20)["faixa"]) == ["first", "second"]
+
+    def test_ranks_the_closest_match_first(self) -> None:
+        alvo = {**NEUTRAL, "energia": 1.0}
+        base = catalog(
+            {**track(popularidade=5, energia=.1), "faixa": "far"},
+            {**track(popularidade=5, energia=.9), "faixa": "near"},
+        )
+        assert list(garimpar(base, alvo, teto=20)["faixa"]) == ["near", "far"]
+
+    def test_respects_the_limit(self) -> None:
+        base = catalog(*[
+            {**track(popularidade=5), "faixa": f"t{i}"} for i in range(12)
+        ])
+        assert len(garimpar(base, NEUTRAL, teto=20)) == 8          # default
+        assert len(garimpar(base, NEUTRAL, teto=20, limite=3)) == 3
+
+    def test_resets_the_index(self) -> None:
+        base = catalog(
+            {**track(popularidade=50), "faixa": "dropped"},
+            {**track(popularidade=5), "faixa": "kept"},
+        )
+        assert list(garimpar(base, NEUTRAL, teto=20).index) == [0]
+
+
+class TestCobertura:
+    def test_percentage_of_the_eligible_universe(self) -> None:
+        base = catalog(*[
+            {**track(popularidade=p), "faixa": str(p)} for p in (5, 10, 50, 60)
+        ])
+        assert cobertura(base, 20) == 50
+
+    def test_empty_base_returns_zero_instead_of_dividing_by_zero(self) -> None:
+        assert cobertura(pd.DataFrame(), 20) == 0
