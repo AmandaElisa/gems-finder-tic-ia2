@@ -214,15 +214,45 @@ implementation work, and it must be evaluated (§7) rather than asserted.
 | What listener metadata is available? | None. Track attributes and popularity only — see §5.1 and its architectural consequence |
 | Do we need more data for the analysis? | Not for content-based filtering. Collaborative filtering would need interaction data we do not have and cannot get from the API (§5.2) |
 
-### Requiring work in the notebooks
+### Answered by measuring the dataset
+
+Measured on `data/raw/dataset_spotify_raw.csv`, which is present in the repo
+(20 MB) — the notebooks read a Colab Drive copy instead (§5.3).
+
+| Question | Measured answer |
+|---|---|
+| Volumetry | **114.000 rows**, 21 columns. Note: the README and the real-model spec both say 114.001 — off by one, and worth correcting at the source |
+| Nulls or corrupted fields? | **Exactly one row**, null in `artists`, `album_name` and `track_name`. Imputation is not the question; dropping one row is |
+| Duplicate `track_id`? | **24.259 (21%)** |
+| Same (`track_name`, `artists`) under different IDs? | **32.658 (29%)** |
+| Genres | **114** distinct `track_genre` values |
+| Underground threshold, percentile 20 | `popularity <= 10` |
+| Coverage of the app's current cut | `popularity <= 40` covers **67.326 tracks (59,1%)** of the catalogue |
+
+**Two of these change design decisions.**
+
+**The duplicates are structural, not dirt.** This dataset repeats a track once
+per genre it belongs to, which is how genre membership is expressed. For
+per-genre centroids that is correct. For anything scanning the catalogue
+globally it is double-counting — and it makes the real-model spec's §3
+instruction ("cruzar por `track_id` com o dataset; merge direto, sem fuzzy
+match") actively unsafe: a direct merge on a column with 21% duplicates
+multiplies rows and skews the user's mean profile. Deduplicate before merging,
+and decide explicitly which genre a deduplicated track keeps.
+
+**The app's underground filter barely filters.** At the slider's maximum, 59,1%
+of the catalogue counts as "underground" — the majority. The report's
+percentile-20 rule means `popularity <= 10`. These are not two settings of one
+knob; they are two different products, and §9 has to settle which one the
+premise rests on.
+
+### Still requiring work in the notebooks
 
 | Question | Where it gets answered |
 |---|---|
-| Nulls or corrupted fields needing imputation? | Data-quality pass, `dadosLimpos.ipynb` |
-| Duplicate tracks — repeated `track_id`, or same name+artist under different IDs? | Same pass. The second form is the dangerous one: it silently inflates a genre's centroid |
 | Outliers that should be treated as noise? | EDA, with the decision recorded — dropping a real outlier can delete exactly the unusual track a discovery engine exists to find |
 | Which attributes correlate most with popularity? | Correlation analysis (§6.2) |
-| Which low-popularity genres resemble high-popularity ones in audio? | Genre centroid comparison — this is the core "niche discovery" question |
+| Which low-popularity genres resemble high-popularity ones in audio? | Genre centroid comparison — the core "niche discovery" question |
 | Does the model over-prioritise consolidated artists? | Measured after §6.4 is implemented, by checking the independent share of returned results |
 
 ## 8. Verification
