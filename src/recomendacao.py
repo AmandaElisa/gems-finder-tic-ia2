@@ -192,39 +192,33 @@ def nome_do_email(email: str) -> str:
     return re.sub(r"\b\w", lambda m: m.group().upper(), local).strip()
 
 
-def montar_resultado(catalogo: pd.DataFrame, artistas: pd.DataFrame, modo: str,
-                     vibe: str, genero: str, favoritos: list[str],
-                     teto: int) -> dict[str, Any]:
-    """Roda o garimpo no modo escolhido e devolve tudo que a UI precisa exibir."""
-    if modo == "Por vibe":
-        base, alvo = catalogo, VIBES[vibe]["alvo"]
-        titulo = f"Joias da vibe {VIBES[vibe]['nome']}"
-        ctx = f"os atributos de áudio batem com o alvo da vibe {VIBES[vibe]['nome']}"
-        precisao = PRECISAO_8[f"vibe_{vibe}"]
-    elif modo == "Por gênero":
-        base, alvo = catalogo[catalogo["genero"] == genero], centro(catalogo, genero)
-        titulo = f"Joias de {genero}"
-        ctx = f"ela representa bem o som médio do gênero {genero}"
-        precisao = PRECISAO_8["genero"]
-    else:
-        selecionados = artistas[artistas["artista"].isin(favoritos)]
-        base, alvo = catalogo, media(selecionados)
-        titulo = "Parecido com " + " + ".join(favoritos)
-        ctx = "o perfil sonoro dela chega perto de " + " e ".join(favoritos)
-        precisao = PRECISAO_8["artista"]
+def montar_resultado(catalogo: pd.DataFrame, artistas: pd.DataFrame,
+                     vibes: Sequence[str], generos: Sequence[str],
+                     favoritos: Sequence[str], teto: int) -> dict[str, Any]:
+    """Garimpa com os critérios combinados do passo 1 e devolve o que a UI exibe.
 
+    Gênero(s) filtram o universo de busca; vibe(s), gênero(s) e artista(s)
+    formam o alvo, um vetor por grupo escolhido.
+    """
+    base = universo(catalogo, generos)
+    criterios = criterios_ativos(catalogo, artistas, vibes, generos, favoritos)
+    if not criterios:
+        raise ValueError("montar_resultado needs at least one active criterion")
+
+    alvo = media_de_vetores([criterio.alvo for criterio in criterios])
     achadas = garimpar(base, alvo, teto)
     return {
-        "titulo": titulo,
-        "ctx": ctx,
-        "precisao": precisao,
+        "titulo": "Joias — " + " · ".join(c.titulo for c in criterios),
+        "ctx": " e ".join(c.ctx for c in criterios),
+        "precisao": precisao_combinada(len(criterios)),
         "cobertura": cobertura(base, teto),
         "faixas": achadas.to_dict("records"),
         "media_match": round_js(achadas["match"].mean()) if len(achadas) else 0,
         "legenda": "Clique em cada faixa pra ver os atributos de áudio.",
         "sub_match": "afinidade com o alvo escolhido",
         "sub_cobertura": "do catálogo elegível cabe neste filtro",
-        "cor": VIBES[vibe]["cor"] if modo == "Por vibe" else LIMA,
+        # com várias vibes não há uma cor só; o protótipo usa lima no cabeçalho
+        "cor": VIBES[vibes[0]]["cor"] if len(vibes) == 1 else LIMA,
     }
 
 
