@@ -14,7 +14,14 @@ from __future__ import annotations
 import pytest
 
 from src.dados import ATRIBUTOS
-from src.recomendacao import match, round_js
+from src.recomendacao import (
+    humor_da_faixa,
+    match,
+    rar,
+    rotulo_profundidade,
+    round_js,
+)
+from src.tema import LIMA, PERI, ROSA
 
 # The five audio attributes at dead centre, so a test can move one at a time.
 NEUTRAL: dict[str, float] = {atributo: .5 for atributo in ATRIBUTOS}
@@ -59,3 +66,48 @@ class TestMatch:
         alvo = {**NEUTRAL, "energia": .7}
         assert match(track(popularidade=30), alvo) == 93
         assert match(track(popularidade=10), alvo) == 96
+
+
+class TestRar:
+    @pytest.mark.parametrize("popularidade, selo, cor", [
+        (0, "Joia bruta", LIMA),
+        (8, "Joia bruta", LIMA),        # boundary: <= 8 is still raw
+        (9, "Rara", ROSA),
+        (17, "Rara", ROSA),             # boundary: <= 17 is still rare
+        (18, "Pouco ouvida", PERI),
+    ])
+    def test_boundaries(self, popularidade: int, selo: str, cor: str) -> None:
+        assert rar(popularidade) == (selo, cor)
+
+
+class TestRotuloProfundidade:
+    @pytest.mark.parametrize("teto, esperado", [
+        (5, "Praticamente invisível"),
+        (10, "Praticamente invisível"),  # boundary
+        (11, "Bem underground"),
+        (20, "Bem underground"),         # boundary
+        (21, "Conhecida em nicho"),
+        (30, "Conhecida em nicho"),      # boundary
+        (31, "Começando a aparecer"),
+    ])
+    def test_boundaries(self, teto: int, esperado: str) -> None:
+        assert rotulo_profundidade(teto) == esperado
+
+
+class TestHumorDaFaixa:
+    def test_sadness_wins_over_high_energy(self) -> None:
+        assert humor_da_faixa(track(valencia=.2, energia=.9)) == "triste"
+
+    def test_high_energy_wins_over_instrumental(self) -> None:
+        assert humor_da_faixa(track(energia=.8, instrumentalidade=.9)) == "treino"
+
+    def test_instrumental_when_calm(self) -> None:
+        assert humor_da_faixa(track(instrumentalidade=.8)) == "foco"
+
+    def test_chill_is_the_default(self) -> None:
+        assert humor_da_faixa(track()) == "chill"
+
+    def test_every_boundary_value_falls_through(self) -> None:
+        # All three comparisons are strict, so the exact threshold is NOT a hit.
+        limite = track(valencia=.3, energia=.75, instrumentalidade=.7)
+        assert humor_da_faixa(limite) == "chill"
