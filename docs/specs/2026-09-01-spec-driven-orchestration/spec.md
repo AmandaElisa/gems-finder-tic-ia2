@@ -127,8 +127,9 @@ Derived from what this repo already does, not invented.
    a spec. Never a silent drift.
 4. **Stable interfaces, small modules.** `carregar_catalogo()` must swap from
    simulated data to the real dataset without the rest of the app noticing —
-   §6 of the real-model spec already promises this. `src/ui/estilo.py` at 318
-   lines is the ceiling, not the target.
+   §6 of the real-model spec already promises this. `src/ui/estilo.py` is the
+   largest file in the repo — 280 lines on `main`, 318 on
+   `feat/link-github-sidebar`. Roughly 300 lines is the ceiling, not the target.
 5. **The logic that picks results is tested.** `src/recomendacao.py` decides
    which gem a user sees; it carries tests. Streamlit UI is verified by running
    the app (`debugging-streamlit` skill), not by mocking widgets.

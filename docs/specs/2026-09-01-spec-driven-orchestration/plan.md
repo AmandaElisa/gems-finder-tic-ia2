@@ -542,8 +542,10 @@ Each module has one responsibility and an interface its callers can rely on.
 without the rest of the app noticing.
 
 *Referent:* §6 of the real-model spec already promises exactly that swap.
-`src/ui/estilo.py` at 318 lines is the largest file in the repo — treat it as
-the ceiling, not the target.
+`src/ui/estilo.py` is the largest file in the repo — 280 lines on `main`, and
+already 318 on `feat/link-github-sidebar`, which shows the direction of travel.
+Treat roughly 300 lines as the ceiling, not the target: a file past it is doing
+more than one thing.
 
 ## 5. The logic that picks results is tested
 
@@ -560,7 +562,7 @@ and `garimpar`'s stable tie order.
 
 Run: `grep -n "src/dados.py:134\|estilo.py\|kind=\"stable\"" src/dados.py src/ui/estilo.py src/recomendacao.py | head`
 
-Expected: `src/dados.py:134` is the `TODO` on `PRECISAO_8`, and `kind="stable"` appears in `src/recomendacao.py`. Confirm `wc -l src/ui/estilo.py` reports 318. If any referent has moved, update the constitution to match reality — the file is worthless the moment a citation is wrong.
+Expected: `src/dados.py:134` is the `TODO` on `PRECISAO_8`, and `kind="stable"` appears in `src/recomendacao.py`. Confirm `wc -l < src/ui/estilo.py` reports 280 on this branch — it reports 318 on `feat/link-github-sidebar`, which is 5 CSS commits ahead; cite the number for the branch you are on. If any referent has moved, update the constitution to match reality — the file is worthless the moment a citation is wrong.
 
 - [ ] **Step 3: Commit**
 
@@ -1072,8 +1074,9 @@ opportunistically.
 `feat(ui): thin scrollbar on tabs for mouse users`. Scopes in use: `ui`,
 `data`, `model`, `docs`, `test`, `orchestration`.
 
-**Modules.** One responsibility, stable interfaces. `src/ui/estilo.py` at 318
-lines is the ceiling, not the target.
+**Modules.** One responsibility, stable interfaces. `src/ui/estilo.py` is the
+largest file in the repo at 280 lines. Roughly 300 is the ceiling, not the
+target.
 
 **Tests.** `src/recomendacao.py` carries tests — it decides which gem a user
 sees. Streamlit UI is verified by running the app (`debugging-streamlit`
