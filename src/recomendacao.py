@@ -65,6 +65,43 @@ def universo(catalogo: pd.DataFrame, generos: Sequence[str]) -> pd.DataFrame:
     return catalogo[catalogo["genero"].isin(list(generos))]
 
 
+class Criterio(NamedTuple):
+    """Um critério ativo do passo 1: seu vetor-alvo e como ele se descreve."""
+
+    alvo: dict[str, float]
+    titulo: str
+    ctx: str
+
+
+def criterios_ativos(catalogo: pd.DataFrame, artistas: pd.DataFrame,
+                     vibes: Sequence[str], generos: Sequence[str],
+                     favoritos: Sequence[str]) -> list[Criterio]:
+    """Um Criterio por grupo escolhido no passo 1, na ordem em que a UI os mostra.
+
+    Cada grupo vira UM critério, quantas fichas tenha: duas vibes viram um só
+    alvo médio, então o alvo final fica no meio entre "as vibes" e "o artista",
+    não a dois terços da vibe.
+    """
+    ativos: list[Criterio] = []
+    if vibes:
+        nomes = " + ".join(VIBES[vibe]["nome"] for vibe in vibes)
+        ativos.append(Criterio(
+            media_de_vetores([VIBES[vibe]["alvo"] for vibe in vibes]),
+            nomes, f"bate com a vibe {nomes}"))
+    if generos:
+        nomes = " + ".join(generos)
+        ativos.append(Criterio(
+            media_de_vetores([centro(catalogo, genero) for genero in generos]),
+            nomes, f"representa o som de {nomes}"))
+    if favoritos:
+        escolhidos = artistas[artistas["artista"].isin(list(favoritos))]
+        ativos.append(Criterio(
+            media(escolhidos),
+            "parecido com " + " + ".join(favoritos),
+            "chega perto de " + " e ".join(favoritos)))
+    return ativos
+
+
 def precisao_combinada(n_criterios: int) -> int:
     """Precisão @8 PLACEHOLDER: sobe com cada critério combinado no passo 1.
 

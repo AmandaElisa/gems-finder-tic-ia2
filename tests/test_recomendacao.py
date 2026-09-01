@@ -17,6 +17,7 @@ import pytest
 from src.dados import ATRIBUTOS
 from src.recomendacao import (
     cobertura,
+    criterios_ativos,
     email_valido,
     garimpar,
     humor_da_faixa,
@@ -140,6 +141,57 @@ class TestPrecisaoCombinada:
 
     def test_the_bonus_never_exceeds_the_cap(self) -> None:
         assert precisao_combinada(99) == precisao_combinada(3)
+
+
+class TestCriteriosAtivos:
+    ARTISTAS = catalog(
+        {**track(), "artista": "Dora Lima", "genero": "MPB", "energia": .42},
+        {**track(), "artista": "MC Vitrine", "genero": "Funk BR", "energia": .90},
+    )
+    CATALOGO = catalog(
+        {**track(popularidade=8), "faixa": "A", "genero": "MPB", "energia": .3},
+        {**track(popularidade=15), "faixa": "B", "genero": "MPB", "energia": .5},
+        {**track(popularidade=9), "faixa": "C", "genero": "Punk", "energia": .9},
+    )
+
+    def test_nothing_selected_gives_no_criteria(self) -> None:
+        assert criterios_ativos(self.CATALOGO, self.ARTISTAS, [], [], []) == []
+
+    def test_one_group_per_selection_kind_in_ui_order(self) -> None:
+        ativos = criterios_ativos(self.CATALOGO, self.ARTISTAS,
+                                  ["chill"], ["MPB"], ["Dora Lima"])
+        assert [c.titulo for c in ativos] == ["Chill", "MPB", "parecido com Dora Lima"]
+
+    def test_several_vibes_collapse_into_one_averaged_criterion(self) -> None:
+        ativos = criterios_ativos(self.CATALOGO, self.ARTISTAS,
+                                  ["chill", "treino"], [], [])
+        assert len(ativos) == 1
+        assert ativos[0].titulo == "Chill + Treino"
+        # Chill's energia is .35 and Treino's is .92.
+        assert ativos[0].alvo["energia"] == pytest.approx(.635)
+
+    def test_a_genre_criterion_is_that_genre_average_over_the_whole_catalogue(self) -> None:
+        ativos = criterios_ativos(self.CATALOGO, self.ARTISTAS, [], ["MPB"], [])
+        assert ativos[0].alvo["energia"] == pytest.approx(.4)   # (.3 + .5) / 2
+        assert ativos[0].ctx == "representa o som de MPB"
+
+    def test_several_genres_average_their_centroids_not_their_tracks(self) -> None:
+        # MPB averages .3 and .5 to .4; Punk is a single .9 track. The mean of
+        # the two centroids is .65 — a per-track mean would give .5667.
+        ativos = criterios_ativos(self.CATALOGO, self.ARTISTAS, [], ["MPB", "Punk"], [])
+        assert ativos[0].alvo["energia"] == pytest.approx(.65)
+        assert ativos[0].titulo == "MPB + Punk"
+
+    def test_artists_join_with_plus_in_the_title_and_with_e_in_the_context(self) -> None:
+        ativos = criterios_ativos(self.CATALOGO, self.ARTISTAS, [], [],
+                                  ["Dora Lima", "MC Vitrine"])
+        assert ativos[0].titulo == "parecido com Dora Lima + MC Vitrine"
+        assert ativos[0].ctx == "chega perto de Dora Lima e MC Vitrine"
+        assert ativos[0].alvo["energia"] == pytest.approx(.66)  # (.42 + .90) / 2
+
+    def test_the_vibe_context_names_every_selected_vibe(self) -> None:
+        ativos = criterios_ativos(self.CATALOGO, self.ARTISTAS, ["chill", "foco"], [], [])
+        assert ativos[0].ctx == "bate com a vibe Chill + Foco"
 
 
 class TestRar:
