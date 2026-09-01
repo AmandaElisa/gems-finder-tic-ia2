@@ -9,7 +9,7 @@ from __future__ import annotations
 import math
 import random
 import re
-from typing import Any, Mapping
+from typing import Any, Mapping, NamedTuple, Sequence
 
 import numpy as np
 import pandas as pd
@@ -46,6 +46,83 @@ def media(faixas: pd.DataFrame) -> dict[str, float]:
 def centro(catalogo: pd.DataFrame, genero: str) -> dict[str, float]:
     """Centroide de atributos de áudio das faixas de um gênero."""
     return media(catalogo[catalogo["genero"] == genero])
+
+
+def media_de_vetores(vetores: Sequence[Mapping[str, float]]) -> dict[str, float]:
+    """Média elemento a elemento de vários vetores-alvo de atributos de áudio.
+
+    O `media()` acima resume um DataFrame de faixas; este resume vetores soltos
+    — o alvo de uma vibe é um dicionário, não uma linha do catálogo.
+    """
+    return {atributo: sum(float(v[atributo]) for v in vetores) / len(vetores)
+            for atributo in ATRIBUTOS}
+
+
+def universo(catalogo: pd.DataFrame, generos: Sequence[str]) -> pd.DataFrame:
+    """Universo de busca: o catálogo todo, ou só as faixas dos gêneros escolhidos."""
+    if not generos:
+        return catalogo
+    return catalogo[catalogo["genero"].isin(list(generos))]
+
+
+class Criterio(NamedTuple):
+    """Um critério ativo do passo 1: seu vetor-alvo e como ele se descreve."""
+
+    alvo: dict[str, float]
+    titulo: str
+    ctx: str
+
+
+def criterios_ativos(catalogo: pd.DataFrame, artistas: pd.DataFrame,
+                     vibes: Sequence[str], generos: Sequence[str],
+                     favoritos: Sequence[str]) -> list[Criterio]:
+    """Um Criterio por grupo escolhido no passo 1, na ordem em que a UI os mostra.
+
+    Cada grupo vira UM critério, quantas fichas tenha: duas vibes viram um só
+    alvo médio, então o alvo final fica no meio entre "as vibes" e "o artista",
+    não a dois terços da vibe.
+    """
+    ativos: list[Criterio] = []
+    if vibes:
+        nomes = " + ".join(VIBES[vibe]["nome"] for vibe in vibes)
+        ativos.append(Criterio(
+            media_de_vetores([VIBES[vibe]["alvo"] for vibe in vibes]),
+            nomes, f"bate com a vibe {nomes}"))
+    if generos:
+        nomes = " + ".join(generos)
+        ativos.append(Criterio(
+            media_de_vetores([centro(catalogo, genero) for genero in generos]),
+            nomes, f"representa o som de {nomes}"))
+    if favoritos:
+        escolhidos = artistas[artistas["artista"].isin(list(favoritos))]
+        ativos.append(Criterio(
+            media(escolhidos),
+            "parecido com " + " + ".join(favoritos),
+            "chega perto de " + " e ".join(favoritos)))
+    return ativos
+
+
+def texto_status(vibes: Sequence[str], generos: Sequence[str],
+                 favoritos: Sequence[str], teto: int) -> str:
+    """Frase do passo 3: lista os critérios ativos e o teto de popularidade."""
+    partes = []
+    if vibes:
+        partes.append("vibe <b>" + " + ".join(VIBES[v]["nome"] for v in vibes) + "</b>")
+    if generos:
+        partes.append("gênero <b>" + " + ".join(generos) + "</b>")
+    if favoritos:
+        partes.append("parecido com <b>" + ", ".join(favoritos) + "</b>")
+    descricao = ", ".join(partes) or "<b>escolha ao menos um critério acima</b>"
+    return f"Buscando por {descricao}, com popularidade até <b>{teto}</b>."
+
+
+def precisao_combinada(n_criterios: int) -> int:
+    """Precisão @8 PLACEHOLDER: sobe com cada critério combinado no passo 1.
+
+    Não é medida — ver o TODO em `src/dados.py::PRECISAO_8`.
+    """
+    return PRECISAO_8["base"] + min(PRECISAO_8["bonus_maximo"],
+                                    n_criterios * PRECISAO_8["por_criterio"])
 
 
 def rar(popularidade: int) -> tuple[str, str]:
@@ -115,39 +192,33 @@ def nome_do_email(email: str) -> str:
     return re.sub(r"\b\w", lambda m: m.group().upper(), local).strip()
 
 
-def montar_resultado(catalogo: pd.DataFrame, artistas: pd.DataFrame, modo: str,
-                     vibe: str, genero: str, favoritos: list[str],
-                     teto: int) -> dict[str, Any]:
-    """Roda o garimpo no modo escolhido e devolve tudo que a UI precisa exibir."""
-    if modo == "Por vibe":
-        base, alvo = catalogo, VIBES[vibe]["alvo"]
-        titulo = f"Joias da vibe {VIBES[vibe]['nome']}"
-        ctx = f"os atributos de áudio batem com o alvo da vibe {VIBES[vibe]['nome']}"
-        precisao = PRECISAO_8[f"vibe_{vibe}"]
-    elif modo == "Por gênero":
-        base, alvo = catalogo[catalogo["genero"] == genero], centro(catalogo, genero)
-        titulo = f"Joias de {genero}"
-        ctx = f"ela representa bem o som médio do gênero {genero}"
-        precisao = PRECISAO_8["genero"]
-    else:
-        selecionados = artistas[artistas["artista"].isin(favoritos)]
-        base, alvo = catalogo, media(selecionados)
-        titulo = "Parecido com " + " + ".join(favoritos)
-        ctx = "o perfil sonoro dela chega perto de " + " e ".join(favoritos)
-        precisao = PRECISAO_8["artista"]
+def montar_resultado(catalogo: pd.DataFrame, artistas: pd.DataFrame,
+                     vibes: Sequence[str], generos: Sequence[str],
+                     favoritos: Sequence[str], teto: int) -> dict[str, Any]:
+    """Garimpa com os critérios combinados do passo 1 e devolve o que a UI exibe.
 
+    Gênero(s) filtram o universo de busca; vibe(s), gênero(s) e artista(s)
+    formam o alvo, um vetor por grupo escolhido.
+    """
+    base = universo(catalogo, generos)
+    criterios = criterios_ativos(catalogo, artistas, vibes, generos, favoritos)
+    if not criterios:
+        raise ValueError("montar_resultado needs at least one active criterion")
+
+    alvo = media_de_vetores([criterio.alvo for criterio in criterios])
     achadas = garimpar(base, alvo, teto)
     return {
-        "titulo": titulo,
-        "ctx": ctx,
-        "precisao": precisao,
+        "titulo": "Joias — " + " · ".join(c.titulo for c in criterios),
+        "ctx": " e ".join(c.ctx for c in criterios),
+        "precisao": precisao_combinada(len(criterios)),
         "cobertura": cobertura(base, teto),
         "faixas": achadas.to_dict("records"),
         "media_match": round_js(achadas["match"].mean()) if len(achadas) else 0,
         "legenda": "Clique em cada faixa pra ver os atributos de áudio.",
         "sub_match": "afinidade com o alvo escolhido",
         "sub_cobertura": "do catálogo elegível cabe neste filtro",
-        "cor": VIBES[vibe]["cor"] if modo == "Por vibe" else LIMA,
+        # com várias vibes não há uma cor só; o protótipo usa lima no cabeçalho
+        "cor": VIBES[vibes[0]]["cor"] if len(vibes) == 1 else LIMA,
     }
 
 

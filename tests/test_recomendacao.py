@@ -14,17 +14,23 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from src.dados import ATRIBUTOS
+from src.dados import ATRIBUTOS, VIBES
 from src.recomendacao import (
     cobertura,
+    criterios_ativos,
     email_valido,
     garimpar,
     humor_da_faixa,
     match,
+    media_de_vetores,
+    montar_resultado,
     nome_do_email,
+    precisao_combinada,
     rar,
     rotulo_profundidade,
     round_js,
+    texto_status,
+    universo,
 )
 from src.tema import LIMA, PERI, ROSA
 
@@ -76,6 +82,217 @@ class TestMatch:
         alvo = {**NEUTRAL, "energia": .7}
         assert match(track(popularidade=30), alvo) == 93
         assert match(track(popularidade=10), alvo) == 96
+
+
+class TestMediaDeVetores:
+    def test_averages_each_attribute_independently(self) -> None:
+        um = {atributo: .2 for atributo in ATRIBUTOS}
+        outro = {**{atributo: .8 for atributo in ATRIBUTOS}, "energia": .6}
+        assert media_de_vetores([um, outro]) == pytest.approx(
+            {**{atributo: .5 for atributo in ATRIBUTOS}, "energia": .4})
+
+    def test_a_single_vector_is_its_own_mean(self) -> None:
+        alvo = {**NEUTRAL, "energia": .9}
+        assert media_de_vetores([alvo]) == pytest.approx(alvo)
+
+    def test_ignores_keys_that_are_not_audio_attributes(self) -> None:
+        # Track rows carry popularidade, genero and friends; only the five
+        # audio attributes may reach the target vector.
+        resultado = media_de_vetores([track(popularidade=5), track(popularidade=90)])
+        assert set(resultado) == set(ATRIBUTOS)
+
+
+class TestUniverso:
+    def test_no_genre_selected_searches_the_whole_catalogue(self) -> None:
+        base = catalog(
+            {**track(), "faixa": "A", "genero": "MPB"},
+            {**track(), "faixa": "B", "genero": "Punk"},
+        )
+        assert list(universo(base, [])["faixa"]) == ["A", "B"]
+
+    def test_one_genre_narrows_to_that_genre(self) -> None:
+        base = catalog(
+            {**track(), "faixa": "A", "genero": "MPB"},
+            {**track(), "faixa": "B", "genero": "Punk"},
+        )
+        assert list(universo(base, ["MPB"])["faixa"]) == ["A"]
+
+    def test_several_genres_keep_every_one_of_them(self) -> None:
+        base = catalog(
+            {**track(), "faixa": "A", "genero": "MPB"},
+            {**track(), "faixa": "B", "genero": "Punk"},
+            {**track(), "faixa": "C", "genero": "Techno"},
+        )
+        assert list(universo(base, ["MPB", "Techno"])["faixa"]) == ["A", "C"]
+
+
+class TestPrecisaoCombinada:
+    @pytest.mark.parametrize("n_criterios, esperado", [
+        (1, 87),
+        (2, 90),
+        (3, 91),    # the +7 cap bites before 3 * 3 does
+    ])
+    def test_rises_with_each_combined_criterion(self, n_criterios: int,
+                                                esperado: int) -> None:
+        assert precisao_combinada(n_criterios) == esperado
+
+    def test_no_criterion_is_the_bare_base(self) -> None:
+        # Unreachable from the UI — the dig button is disabled with nothing
+        # selected — but the function stays total rather than raising.
+        assert precisao_combinada(0) == 84
+
+    def test_the_bonus_never_exceeds_the_cap(self) -> None:
+        assert precisao_combinada(99) == precisao_combinada(3)
+
+
+class TestCriteriosAtivos:
+    ARTISTAS = catalog(
+        {**track(), "artista": "Dora Lima", "genero": "MPB", "energia": .42},
+        {**track(), "artista": "MC Vitrine", "genero": "Funk BR", "energia": .90},
+    )
+    CATALOGO = catalog(
+        {**track(popularidade=8), "faixa": "A", "genero": "MPB", "energia": .3},
+        {**track(popularidade=15), "faixa": "B", "genero": "MPB", "energia": .5},
+        {**track(popularidade=9), "faixa": "C", "genero": "Punk", "energia": .9},
+    )
+
+    def test_nothing_selected_gives_no_criteria(self) -> None:
+        assert criterios_ativos(self.CATALOGO, self.ARTISTAS, [], [], []) == []
+
+    def test_one_group_per_selection_kind_in_ui_order(self) -> None:
+        ativos = criterios_ativos(self.CATALOGO, self.ARTISTAS,
+                                  ["chill"], ["MPB"], ["Dora Lima"])
+        assert [c.titulo for c in ativos] == ["Chill", "MPB", "parecido com Dora Lima"]
+
+    def test_several_vibes_collapse_into_one_averaged_criterion(self) -> None:
+        ativos = criterios_ativos(self.CATALOGO, self.ARTISTAS,
+                                  ["chill", "treino"], [], [])
+        assert len(ativos) == 1
+        assert ativos[0].titulo == "Chill + Treino"
+        # Chill's energia is .35 and Treino's is .92.
+        assert ativos[0].alvo["energia"] == pytest.approx(.635)
+
+    def test_a_genre_criterion_is_that_genre_average_over_the_whole_catalogue(self) -> None:
+        ativos = criterios_ativos(self.CATALOGO, self.ARTISTAS, [], ["MPB"], [])
+        assert ativos[0].alvo["energia"] == pytest.approx(.4)   # (.3 + .5) / 2
+        assert ativos[0].ctx == "representa o som de MPB"
+
+    def test_several_genres_average_their_centroids_not_their_tracks(self) -> None:
+        # MPB averages .3 and .5 to .4; Punk is a single .9 track. The mean of
+        # the two centroids is .65 — a per-track mean would give .5667.
+        ativos = criterios_ativos(self.CATALOGO, self.ARTISTAS, [], ["MPB", "Punk"], [])
+        assert ativos[0].alvo["energia"] == pytest.approx(.65)
+        assert ativos[0].titulo == "MPB + Punk"
+
+    def test_artists_join_with_plus_in_the_title_and_with_e_in_the_context(self) -> None:
+        ativos = criterios_ativos(self.CATALOGO, self.ARTISTAS, [], [],
+                                  ["Dora Lima", "MC Vitrine"])
+        assert ativos[0].titulo == "parecido com Dora Lima + MC Vitrine"
+        assert ativos[0].ctx == "chega perto de Dora Lima e MC Vitrine"
+        assert ativos[0].alvo["energia"] == pytest.approx(.66)  # (.42 + .90) / 2
+
+    def test_the_vibe_context_names_every_selected_vibe(self) -> None:
+        ativos = criterios_ativos(self.CATALOGO, self.ARTISTAS, ["chill", "foco"], [], [])
+        assert ativos[0].ctx == "bate com a vibe Chill + Foco"
+
+
+class TestTextoStatus:
+    def test_lists_all_three_groups_in_ui_order(self) -> None:
+        assert texto_status(["chill"], ["MPB"], ["Dora Lima"], 18) == (
+            "Buscando por vibe <b>Chill</b>, gênero <b>MPB</b>, "
+            "parecido com <b>Dora Lima</b>, com popularidade até <b>18</b>.")
+
+    def test_joins_several_vibes_and_genres_with_plus(self) -> None:
+        assert texto_status(["chill", "treino"], ["MPB", "Samba"], [], 7) == (
+            "Buscando por vibe <b>Chill + Treino</b>, gênero <b>MPB + Samba</b>, "
+            "com popularidade até <b>7</b>.")
+
+    def test_joins_several_artists_with_commas(self) -> None:
+        assert texto_status([], [], ["Dora Lima", "Nêga Sol"], 30) == (
+            "Buscando por parecido com <b>Dora Lima, Nêga Sol</b>, "
+            "com popularidade até <b>30</b>.")
+
+    def test_nothing_selected_asks_for_a_criterion(self) -> None:
+        assert texto_status([], [], [], 18) == (
+            "Buscando por <b>escolha ao menos um critério acima</b>, "
+            "com popularidade até <b>18</b>.")
+
+    @pytest.mark.parametrize("vibes, generos, favoritos, esperado", [
+        (["foco"], [], [], "vibe <b>Foco</b>"),
+        ([], ["Punk"], [], "gênero <b>Punk</b>"),
+        ([], [], ["MC Vitrine"], "parecido com <b>MC Vitrine</b>"),
+    ])
+    def test_a_single_group_names_only_itself(self, vibes: list[str],
+                                              generos: list[str],
+                                              favoritos: list[str],
+                                              esperado: str) -> None:
+        assert texto_status(vibes, generos, favoritos, 18) == (
+            f"Buscando por {esperado}, com popularidade até <b>18</b>.")
+
+
+class TestMontarResultado:
+    CATALOGO = catalog(
+        {**track(popularidade=8), "faixa": "MPB baixa", "genero": "MPB",
+         "energia": .34, "bpm": 96, "artista": "Beira de Rio",
+         "cidade": "Paraty", "ano": 2022},
+        {**track(popularidade=15), "faixa": "MPB média", "genero": "MPB",
+         "energia": .38, "bpm": 100, "artista": "Lume",
+         "cidade": "Florianópolis", "ano": 2023},
+        {**track(popularidade=9), "faixa": "Punk", "genero": "Punk",
+         "energia": .95, "bpm": 152, "artista": "Britadeira Social",
+         "cidade": "São Paulo", "ano": 2023},
+    )
+    ARTISTAS = catalog(
+        {**track(), "artista": "Dora Lima", "genero": "MPB", "energia": .42},
+    )
+
+    def montar(self, vibes: list[str], generos: list[str],
+               favoritos: list[str], teto: int = 18) -> dict:
+        return montar_resultado(self.CATALOGO, self.ARTISTAS, vibes, generos,
+                                favoritos, teto)
+
+    def test_a_genre_narrows_the_universe(self) -> None:
+        resultado = self.montar([], ["MPB"], [])
+        assert {f["genero"] for f in resultado["faixas"]} == {"MPB"}
+
+    def test_no_genre_searches_every_genre(self) -> None:
+        resultado = self.montar(["treino"], [], [])
+        assert {f["genero"] for f in resultado["faixas"]} == {"MPB", "Punk"}
+
+    def test_the_title_lists_every_active_criterion(self) -> None:
+        assert self.montar(["chill"], ["MPB"], ["Dora Lima"])["titulo"] == (
+            "Joias — Chill · MPB · parecido com Dora Lima")
+
+    def test_the_context_joins_the_criteria_with_e(self) -> None:
+        assert self.montar(["chill"], ["MPB"], [])["ctx"] == (
+            "bate com a vibe Chill e representa o som de MPB")
+
+    def test_precision_follows_the_number_of_active_groups(self) -> None:
+        assert self.montar(["chill"], [], [])["precisao"] == 87
+        assert self.montar(["chill"], ["MPB"], [])["precisao"] == 90
+        assert self.montar(["chill"], ["MPB"], ["Dora Lima"])["precisao"] == 91
+
+    def test_coverage_is_measured_against_the_narrowed_universe(self) -> None:
+        # Inside MPB, both tracks are at or below 15, so a ceiling of 15 keeps
+        # everything — even though one of the three catalogue tracks is out.
+        assert self.montar([], ["MPB"], [], teto=15)["cobertura"] == 100
+
+    def test_one_vibe_tints_the_heading_with_its_colour(self) -> None:
+        assert self.montar(["chill"], [], [])["cor"] == VIBES["chill"]["cor"]
+
+    def test_several_vibes_fall_back_to_lime(self) -> None:
+        assert self.montar(["chill", "treino"], [], [])["cor"] == LIMA
+
+    def test_no_vibe_falls_back_to_lime(self) -> None:
+        assert self.montar([], ["MPB"], [])["cor"] == LIMA
+
+    def test_nothing_selected_is_a_programming_error(self) -> None:
+        with pytest.raises(ValueError, match="at least one active criterion"):
+            self.montar([], [], [])
+
+    def test_an_empty_result_still_reports_zero_average_match(self) -> None:
+        assert self.montar(["chill"], [], [], teto=1)["faixas"] == []
+        assert self.montar(["chill"], [], [], teto=1)["media_match"] == 0
 
 
 class TestRar:

@@ -51,10 +51,13 @@ Each module has one responsibility and an interface its callers can rely on.
 without the rest of the app noticing.
 
 *Referent:* §6 of the real-model spec already promises exactly that swap.
-`src/ui/estilo.py` is the largest file in the repo — 280 lines on `main`, and
-already 318 on `feat/link-github-sidebar`, which shows the direction of travel.
-Treat roughly 300 lines as the ceiling, not the target: a file past it is doing
-more than one thing.
+`src/ui/estilo.py` is the largest file in the repo — 318 lines on `main` (the
+CSS branch that took it there has since merged), and 276 on
+`feat/combinable-search-criteria`, which deleted the mode selector and the ~46
+lines of segmented-control CSS that only it used. Treat roughly 300 lines as
+the ceiling, not the target: a file past it is doing more than one thing. Both
+directions of travel are real — a feature can pay the ceiling back by removing
+what it made dead.
 
 ## 5. The logic that picks results is tested
 

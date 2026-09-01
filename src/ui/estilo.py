@@ -97,6 +97,11 @@ hr{border-color:rgba(20,20,20,.15);}
 .gf-help b{color:var(--tinta);}
 .gf-status{font-size:13.5px;color:var(--mute);margin:0 0 16px;}
 .gf-status b{color:var(--tinta);font-weight:800;}
+/* rótulo dos três grupos opcionais do passo 1 (.grupo-lbl do protótipo) */
+.gf-grupo{font-family:var(--d) !important;font-size:14.5px;font-weight:600;
+  margin:20px 0 10px;display:flex;align-items:baseline;gap:8px;}
+.gf-grupo span{font-family:var(--f) !important;font-size:11.5px;font-weight:600;
+  color:var(--mute);}
 
 /* ---------- vibes (o card inteiro é o botão) ---------- */
 .gf-vibe{border:2px solid var(--tinta);border-radius:20px;padding:16px 14px 14px;
@@ -226,24 +231,6 @@ hr{border-color:rgba(20,20,20,.15);}
 [data-baseweb="tag"]{background:var(--lima) !important;color:var(--tinta) !important;
   border:2px solid var(--tinta) !important;border-radius:99px !important;font-weight:700;}
 [data-baseweb="tag"] span{color:var(--tinta) !important;}
-/* segmented control com o visual .seg do protótipo: pílula branca, item ativo preto */
-[data-testid="stButtonGroup"]{display:inline-flex;background:#fff;border:2px solid var(--tinta);
-  border-radius:99px;padding:4px;gap:4px;box-shadow:3px 3px 0 var(--tinta);flex-wrap:wrap;
-  width:auto;margin:2px 0 4px;}
-[data-testid="stButtonGroup"] button{border:0 !important;background:transparent !important;
-  border-radius:99px !important;padding:7px 20px !important;box-shadow:none !important;
-  color:var(--mute) !important;transition:.14s;}
-[data-testid="stButtonGroup"] button:hover{color:var(--tinta) !important;transform:none;}
-[data-testid="stButtonGroup"] button p{font-weight:700 !important;font-size:14px !important;
-  color:inherit !important;}
-[data-testid="stButtonGroup"] button[aria-checked="true"],
-[data-testid="stButtonGroup"] button[data-selected="true"],
-[data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_controlActive"]{
-  background:var(--tinta) !important;}
-[data-testid="stButtonGroup"] button[aria-checked="true"] p,
-[data-testid="stButtonGroup"] button[data-selected="true"] p,
-[data-testid="stButtonGroup"] button[data-testid="stBaseButton-segmented_controlActive"] p{
-  color:#fff !important;}
 [data-testid="stSlider"] [role="slider"]{background:var(--rosa) !important;
   border:2px solid var(--tinta) !important;box-shadow:none !important;}
 [data-testid="stExpander"]{border:none !important;background:transparent !important;}
@@ -281,37 +268,8 @@ hr{border-color:rgba(20,20,20,.15);}
   .gf-title{font-size:29px;}
   .gf-metrics{grid-template-columns:1fr 1fr;}
 }
-/* em tela estreita os três modos não cabem na linha e o flex-wrap partia a
-   pílula no meio; mantém a cara de tabs comprimindo fonte e padding, e deixa
-   correr no eixo x (sem barra visível) se ainda faltar espaço */
 @media (max-width:640px){
-  /* Tabs roláveis no padrão do Material 3: uma linha só, e o que não couber se
-     alcança arrastando. O flex que envolve os botões é um div INTERNO do
-     stButtonGroup, não ele mesmo — o nowrap e o overflow vão nele. */
-  [data-testid="stButtonGroup"]{max-width:100%;}
-  [data-testid="stButtonGroup"] > div{
-    flex-wrap:nowrap !important;overflow-x:auto;max-width:100%;
-    -webkit-overflow-scrolling:touch;scroll-behavior:smooth;
-    scroll-snap-type:x proximity;scrollbar-width:none;-ms-overflow-style:none;}
-  [data-testid="stButtonGroup"] > div::-webkit-scrollbar{display:none;}
-  [data-testid="stButtonGroup"] button{flex:none;padding:6px 10px !important;
-    scroll-snap-align:center;}
-  [data-testid="stButtonGroup"] button p{font-size:11.5px !important;letter-spacing:0;}
   .gf-metrics{grid-template-columns:1fr;}
-}
-/* No touch o swipe basta e a barra fica escondida. Com mouse não há como
-   arrastar a tira, então expõe uma barra fininha — é a afordância que o
-   Material cobre com as setas laterais no desktop. */
-@media (max-width:640px) and (pointer:fine){
-  [data-testid="stButtonGroup"]{padding-bottom:2px;}
-  [data-testid="stButtonGroup"] > div{scrollbar-width:thin;
-    scrollbar-color:rgba(20,20,20,.4) transparent;padding-bottom:5px;}
-  [data-testid="stButtonGroup"] > div::-webkit-scrollbar{display:block;height:5px;}
-  [data-testid="stButtonGroup"] > div::-webkit-scrollbar-track{background:transparent;}
-  [data-testid="stButtonGroup"] > div::-webkit-scrollbar-thumb{
-    background:rgba(20,20,20,.4);border-radius:99px;}
-  [data-testid="stButtonGroup"] > div::-webkit-scrollbar-thumb:hover{
-    background:rgba(20,20,20,.65);}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
 </style>

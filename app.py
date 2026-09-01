@@ -39,7 +39,7 @@ def main() -> None:
     catalogo = carregar_catalogo()
     artistas = carregar_artistas()
     generos = listar_generos(catalogo)
-    iniciar_estado(generos)
+    iniciar_estado()
 
     # O Spotify devolve o usuário pra raiz do app; sem isso ele cairia no
     # "Descobrir" e teria que clicar na aba pra ver o próprio perfil.
