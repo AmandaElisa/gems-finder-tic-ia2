@@ -21,10 +21,12 @@ from src.recomendacao import (
     garimpar,
     humor_da_faixa,
     match,
+    media_de_vetores,
     nome_do_email,
     rar,
     rotulo_profundidade,
     round_js,
+    universo,
 )
 from src.tema import LIMA, PERI, ROSA
 
@@ -76,6 +78,48 @@ class TestMatch:
         alvo = {**NEUTRAL, "energia": .7}
         assert match(track(popularidade=30), alvo) == 93
         assert match(track(popularidade=10), alvo) == 96
+
+
+class TestMediaDeVetores:
+    def test_averages_each_attribute_independently(self) -> None:
+        um = {atributo: .2 for atributo in ATRIBUTOS}
+        outro = {**{atributo: .8 for atributo in ATRIBUTOS}, "energia": .6}
+        assert media_de_vetores([um, outro]) == pytest.approx(
+            {**{atributo: .5 for atributo in ATRIBUTOS}, "energia": .4})
+
+    def test_a_single_vector_is_its_own_mean(self) -> None:
+        alvo = {**NEUTRAL, "energia": .9}
+        assert media_de_vetores([alvo]) == pytest.approx(alvo)
+
+    def test_ignores_keys_that_are_not_audio_attributes(self) -> None:
+        # Track rows carry popularidade, genero and friends; only the five
+        # audio attributes may reach the target vector.
+        resultado = media_de_vetores([track(popularidade=5), track(popularidade=90)])
+        assert set(resultado) == set(ATRIBUTOS)
+
+
+class TestUniverso:
+    def test_no_genre_selected_searches_the_whole_catalogue(self) -> None:
+        base = catalog(
+            {**track(), "faixa": "A", "genero": "MPB"},
+            {**track(), "faixa": "B", "genero": "Punk"},
+        )
+        assert list(universo(base, [])["faixa"]) == ["A", "B"]
+
+    def test_one_genre_narrows_to_that_genre(self) -> None:
+        base = catalog(
+            {**track(), "faixa": "A", "genero": "MPB"},
+            {**track(), "faixa": "B", "genero": "Punk"},
+        )
+        assert list(universo(base, ["MPB"])["faixa"]) == ["A"]
+
+    def test_several_genres_keep_every_one_of_them(self) -> None:
+        base = catalog(
+            {**track(), "faixa": "A", "genero": "MPB"},
+            {**track(), "faixa": "B", "genero": "Punk"},
+            {**track(), "faixa": "C", "genero": "Techno"},
+        )
+        assert list(universo(base, ["MPB", "Techno"])["faixa"]) == ["A", "C"]
 
 
 class TestRar:

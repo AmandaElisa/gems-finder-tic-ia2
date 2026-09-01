@@ -9,7 +9,7 @@ from __future__ import annotations
 import math
 import random
 import re
-from typing import Any, Mapping
+from typing import Any, Mapping, NamedTuple, Sequence
 
 import numpy as np
 import pandas as pd
@@ -46,6 +46,23 @@ def media(faixas: pd.DataFrame) -> dict[str, float]:
 def centro(catalogo: pd.DataFrame, genero: str) -> dict[str, float]:
     """Centroide de atributos de áudio das faixas de um gênero."""
     return media(catalogo[catalogo["genero"] == genero])
+
+
+def media_de_vetores(vetores: Sequence[Mapping[str, float]]) -> dict[str, float]:
+    """Média elemento a elemento de vários vetores-alvo de atributos de áudio.
+
+    O `media()` acima resume um DataFrame de faixas; este resume vetores soltos
+    — o alvo de uma vibe é um dicionário, não uma linha do catálogo.
+    """
+    return {atributo: sum(float(v[atributo]) for v in vetores) / len(vetores)
+            for atributo in ATRIBUTOS}
+
+
+def universo(catalogo: pd.DataFrame, generos: Sequence[str]) -> pd.DataFrame:
+    """Universo de busca: o catálogo todo, ou só as faixas dos gêneros escolhidos."""
+    if not generos:
+        return catalogo
+    return catalogo[catalogo["genero"].isin(list(generos))]
 
 
 def rar(popularidade: int) -> tuple[str, str]:
