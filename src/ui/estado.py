@@ -6,12 +6,11 @@ from typing import Any
 
 import streamlit as st
 
-from src.dados import MODOS
-
 PADROES: dict[str, Any] = {
-    "modo": MODOS[0],
-    "vibe": "foco",
-    "genero": "",
+    # os três critérios do passo 1 se combinam, e nada vem marcado: pré-marcar
+    # uma vibe enviesaria em silêncio todo primeiro garimpo
+    "vibes": [],
+    "generos": [],
     "favoritos": [],
     "teto": 18,
     "res_desc": None,
@@ -28,12 +27,10 @@ PADROES: dict[str, Any] = {
 }
 
 
-def iniciar_estado(generos: list[str]) -> None:
+def iniciar_estado() -> None:
     """Garante as chaves do session_state na primeira execução."""
     for chave, valor in PADROES.items():
         st.session_state.setdefault(chave, valor.copy() if isinstance(valor, list) else valor)
-    if not st.session_state.genero:
-        st.session_state.genero = generos[0]
 
 
 def limpar_conta() -> None:

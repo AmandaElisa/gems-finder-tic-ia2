@@ -175,7 +175,6 @@ PERMISSOES: tuple[str, ...] = (
     "Criar uma playlist privada na sua conta",
 )
 
-MODOS: tuple[str, ...] = ("Por vibe", "Por gênero", "Por artista favorito")
 PAGINAS: tuple[str, ...] = ("⛏️ Descobrir", "🎧 Minha conta")
 
 
