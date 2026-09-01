@@ -102,6 +102,20 @@ def criterios_ativos(catalogo: pd.DataFrame, artistas: pd.DataFrame,
     return ativos
 
 
+def texto_status(vibes: Sequence[str], generos: Sequence[str],
+                 favoritos: Sequence[str], teto: int) -> str:
+    """Frase do passo 3: lista os critérios ativos e o teto de popularidade."""
+    partes = []
+    if vibes:
+        partes.append("vibe <b>" + " + ".join(VIBES[v]["nome"] for v in vibes) + "</b>")
+    if generos:
+        partes.append("gênero <b>" + " + ".join(generos) + "</b>")
+    if favoritos:
+        partes.append("parecido com <b>" + ", ".join(favoritos) + "</b>")
+    descricao = ", ".join(partes) or "<b>escolha ao menos um critério acima</b>"
+    return f"Buscando por {descricao}, com popularidade até <b>{teto}</b>."
+
+
 def precisao_combinada(n_criterios: int) -> int:
     """Precisão @8 PLACEHOLDER: sobe com cada critério combinado no passo 1.
 

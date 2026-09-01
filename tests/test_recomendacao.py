@@ -28,6 +28,7 @@ from src.recomendacao import (
     rar,
     rotulo_profundidade,
     round_js,
+    texto_status,
     universo,
 )
 from src.tema import LIMA, PERI, ROSA
@@ -192,6 +193,40 @@ class TestCriteriosAtivos:
     def test_the_vibe_context_names_every_selected_vibe(self) -> None:
         ativos = criterios_ativos(self.CATALOGO, self.ARTISTAS, ["chill", "foco"], [], [])
         assert ativos[0].ctx == "bate com a vibe Chill + Foco"
+
+
+class TestTextoStatus:
+    def test_lists_all_three_groups_in_ui_order(self) -> None:
+        assert texto_status(["chill"], ["MPB"], ["Dora Lima"], 18) == (
+            "Buscando por vibe <b>Chill</b>, gênero <b>MPB</b>, "
+            "parecido com <b>Dora Lima</b>, com popularidade até <b>18</b>.")
+
+    def test_joins_several_vibes_and_genres_with_plus(self) -> None:
+        assert texto_status(["chill", "treino"], ["MPB", "Samba"], [], 7) == (
+            "Buscando por vibe <b>Chill + Treino</b>, gênero <b>MPB + Samba</b>, "
+            "com popularidade até <b>7</b>.")
+
+    def test_joins_several_artists_with_commas(self) -> None:
+        assert texto_status([], [], ["Dora Lima", "Nêga Sol"], 30) == (
+            "Buscando por parecido com <b>Dora Lima, Nêga Sol</b>, "
+            "com popularidade até <b>30</b>.")
+
+    def test_nothing_selected_asks_for_a_criterion(self) -> None:
+        assert texto_status([], [], [], 18) == (
+            "Buscando por <b>escolha ao menos um critério acima</b>, "
+            "com popularidade até <b>18</b>.")
+
+    @pytest.mark.parametrize("vibes, generos, favoritos, esperado", [
+        (["foco"], [], [], "vibe <b>Foco</b>"),
+        ([], ["Punk"], [], "gênero <b>Punk</b>"),
+        ([], [], ["MC Vitrine"], "parecido com <b>MC Vitrine</b>"),
+    ])
+    def test_a_single_group_names_only_itself(self, vibes: list[str],
+                                              generos: list[str],
+                                              favoritos: list[str],
+                                              esperado: str) -> None:
+        assert texto_status(vibes, generos, favoritos, 18) == (
+            f"Buscando por {esperado}, com popularidade até <b>18</b>.")
 
 
 class TestRar:
