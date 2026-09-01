@@ -23,6 +23,7 @@ from src.recomendacao import (
     match,
     media_de_vetores,
     nome_do_email,
+    precisao_combinada,
     rar,
     rotulo_profundidade,
     round_js,
@@ -120,6 +121,25 @@ class TestUniverso:
             {**track(), "faixa": "C", "genero": "Techno"},
         )
         assert list(universo(base, ["MPB", "Techno"])["faixa"]) == ["A", "C"]
+
+
+class TestPrecisaoCombinada:
+    @pytest.mark.parametrize("n_criterios, esperado", [
+        (1, 87),
+        (2, 90),
+        (3, 91),    # the +7 cap bites before 3 * 3 does
+    ])
+    def test_rises_with_each_combined_criterion(self, n_criterios: int,
+                                                esperado: int) -> None:
+        assert precisao_combinada(n_criterios) == esperado
+
+    def test_no_criterion_is_the_bare_base(self) -> None:
+        # Unreachable from the UI — the dig button is disabled with nothing
+        # selected — but the function stays total rather than raising.
+        assert precisao_combinada(0) == 84
+
+    def test_the_bonus_never_exceeds_the_cap(self) -> None:
+        assert precisao_combinada(99) == precisao_combinada(3)
 
 
 class TestRar:

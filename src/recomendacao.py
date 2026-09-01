@@ -65,6 +65,15 @@ def universo(catalogo: pd.DataFrame, generos: Sequence[str]) -> pd.DataFrame:
     return catalogo[catalogo["genero"].isin(list(generos))]
 
 
+def precisao_combinada(n_criterios: int) -> int:
+    """Precisão @8 PLACEHOLDER: sobe com cada critério combinado no passo 1.
+
+    Não é medida — ver o TODO em `src/dados.py::PRECISAO_8`.
+    """
+    return PRECISAO_8["base"] + min(PRECISAO_8["bonus_maximo"],
+                                    n_criterios * PRECISAO_8["por_criterio"])
+
+
 def rar(popularidade: int) -> tuple[str, str]:
     """Selo de raridade e a cor correspondente, a partir da popularidade."""
     if popularidade <= 8:

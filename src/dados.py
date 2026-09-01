@@ -132,14 +132,14 @@ VIBES: dict[str, dict[str, Any]] = {
 }
 
 # TODO: trocar pelos números reais da avaliação offline do modelo.
-# Por enquanto são os placeholders herdados do protótipo aprovado.
+# Por enquanto são PLACEHOLDERS herdados do protótipo aprovado. No garimpo
+# público a Precisão @8 é `base` + `por_criterio` pontos por critério combinado
+# no passo 1, com teto de `bonus_maximo` — 87 com um critério, 90 com dois, 91
+# com três. Nenhum desses números foi medido.
 PRECISAO_8: dict[str, int] = {
-    "vibe_foco": 91,
-    "vibe_treino": 87,
-    "vibe_chill": 84,
-    "vibe_melancolia": 89,
-    "genero": 86,
-    "artista": 90,
+    "base": 84,
+    "por_criterio": 3,
+    "bonus_maximo": 7,
     "conta": 88,
 }
 
