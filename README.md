@@ -134,10 +134,59 @@ mantém a produção leve e imune a incompatibilidade de *pickle* entre versões
 ### Qualidade
 | Ferramenta | Uso |
 |---|---|
-| **pytest** | 100 testes sobre a lógica de recomendação |
+| **pytest** | 108 testes sobre a lógica de recomendação |
 | **JupyterLab** | Notebook de treino, executável de ponta a ponta fora do Colab |
 
 ### Modelo em produção
 Cada artefato carrega uma **versão derivada do conteúdo** (hash das features,
 centroides, parâmetros e limiares) e a data de treino, para que se saiba de
 qual modelo saiu cada resultado.
+
+## 🚧 Limitações da API do Spotify
+
+Duas funcionalidades do produto esbarram em restrições da plataforma, não em
+decisões nossas. Estão documentadas aqui porque mudam o que o app pode
+prometer, e porque a alternativa — simular o resultado — violaria o princípio
+2 da [constituição](docs/constitution.md).
+
+### Atributos de áudio não vêm da API
+
+O endpoint `GET /v1/audio-features` foi **descontinuado para apps novos em
+27/11/2024**. Por isso os atributos de áudio de uma faixa **nunca** vêm do
+Spotify: o perfil de quem conecta é montado cruzando as faixas mais ouvidas
+com o nosso catálogo, pela chave `track_id`. É também o motivo de o catálogo
+processado precisar estar deduplicado por `track_id` — um cruzamento contra o
+dado bruto multiplicaria linhas, porque lá a mesma faixa aparece uma vez por
+gênero.
+
+Consequência prática: quem ouve música que não está nas 89.740 faixas do
+dataset cai na cascata de fallback, e a tela diz por onde o perfil foi
+calculado em vez de fingir precisão.
+
+### A playlist não pode ser criada
+
+**A geração de playlist continua implementada e visível no app**, porque é
+parte do produto desenhado. Ela falha com `403 Forbidden`, e a causa é
+externa: desde a migração de **9 de março de 2026**, apps do Spotify em
+**Development Mode** podem **ler**, mas não **escrever**. Criar playlist e
+adicionar faixas são escrita.
+
+Diagnosticado com o próprio app, e não é nenhuma das suspeitas comuns:
+
+| Hipótese | Verificado |
+|---|---|
+| Falta o escopo `playlist-modify-private` | Não — o token concedido traz o escopo |
+| Conta fora da lista de testadores | Não — a conta está em *User Management* |
+| Erro na montagem da requisição | Não — a mesma credencial lê `/me` e `/me/top/tracks` |
+
+Sair do Development Mode exige **Extended Quota**, que desde 15/05/2025 só é
+concedida a **organização registrada com no mínimo 250 mil usuários ativos
+por mês** — inalcançável para um projeto acadêmico.
+
+O app degrada com honestidade: explica a restrição na tela e oferece o que a
+plataforma permite, que é **link direto de cada joia** (leitura pura, sem
+login e sem permissão) para montar a playlist manualmente.
+
+Fontes: [Quota modes](https://developer.spotify.com/documentation/web-api/concepts/quota-modes)
+· [relato do mesmo caso](https://community.spotify.com/t5/Spotify-for-Developers/Web-API-playlist-creation-returns-403-in-Development-Mode-no/td-p/7482480)
+· [issue no SDK oficial](https://github.com/spotify/spotify-web-api-ts-sdk/issues/159)

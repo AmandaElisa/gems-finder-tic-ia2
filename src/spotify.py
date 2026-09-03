@@ -16,6 +16,14 @@ Notas:
   cruzando as faixas mais ouvidas dele com o nosso catálogo, por `track_id`.
 * O catálogo traz o track_id real de cada faixa, então a playlist criada nasce
   preenchida.
+* A criação de playlist NÃO funciona hoje, e a causa é externa: apps em
+  Development Mode podem ler mas não escrever, desde a migração de 9/3/2026.
+  Ela continua implementada de propósito — é parte do produto desenhado, e o
+  grupo apresenta a limitação em vez de esconder a funcionalidade. Verificado
+  que não é escopo (o token traz `playlist-modify-private`) nem lista de
+  testadores (a conta está nela). Sair do modo exige Extended Quota, hoje só
+  para organização com 250 mil usuários ativos por mês. Detalhes no README,
+  seção "Limitações da API do Spotify".
 """
 
 from __future__ import annotations
