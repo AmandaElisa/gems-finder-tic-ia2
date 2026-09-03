@@ -97,8 +97,23 @@ def gema_topo_html(faixa: Mapping[str, Any]) -> str:
         f'<div class="gf-meta"><span class="gf-badge" style="background:{cor}">{selo}</span>'
         f'<span class="gf-badge">{faixa["genero"]}</span>'
         f'<span class="gf-badge">pop {faixa["popularidade"]}</span>'
-        f'<span class="gf-badge">{faixa["bpm"]} BPM</span></div>'
+        f'<span class="gf-badge">{round(float(faixa["bpm"]))} BPM</span>'
+        f'{_link_spotify(faixa)}</div>'
     )
+
+
+def _link_spotify(faixa: Mapping[str, Any]) -> str:
+    """Selo que abre a faixa no Spotify, quando ela tem ID real.
+
+    Não exige login de ninguém: o link de faixa é público. É o que permite
+    levar a joia embora mesmo sem conta conectada — a playlist, que exige
+    autorização de usuário, vive na aba Minha conta.
+    """
+    track_id = faixa.get("track_id")
+    if not track_id:
+        return ""
+    return (f'<a class="gf-badge gf-ouvir" target="_blank" rel="noopener" '
+            f'href="https://open.spotify.com/track/{track_id}">▶ Ouvir</a>')
 
 
 def estado_vazio_html(dica: str) -> str:

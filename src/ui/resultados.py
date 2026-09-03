@@ -34,7 +34,10 @@ def mostrar_resultados(resultado: Mapping[str, Any], espaco: str, dica_vazia: st
                           + f'<p class="gf-why">Entrou porque {resultado["ctx"]} — e só '
                             f'{faixa["popularidade"]} de 100 no índice de popularidade.</p>')
 
-    secao_playlist(resultado, espaco)
+    # A playlist exige conta conectada, então mora na aba Minha conta. Aqui
+    # cada joia tem seu link direto, que funciona sem login.
+    if espaco != "desc":
+        secao_playlist(resultado, espaco)
 
 
 def _gerar_playlist_real(resultado: Mapping[str, Any], chave_url: str) -> None:

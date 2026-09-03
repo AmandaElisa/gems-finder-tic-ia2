@@ -124,6 +124,11 @@ hr{border-color:rgba(20,20,20,.15);}
 [class*="st-key-vibecard-"] .stButton > button{opacity:0;cursor:pointer;border-radius:20px;
   box-shadow:none;padding:0;pointer-events:auto;}
 
+/* selo que abre a faixa no Spotify — verde da marca, e é <a>, não botão */
+.gf-badge.gf-ouvir{background:var(--verde);color:#fff;text-decoration:none;
+  font-weight:600;cursor:pointer;transition:.14s;}
+.gf-badge.gf-ouvir:hover{filter:brightness(1.08);transform:translateY(-1px);}
+
 /* ---------- chips de gênero e artista (st.buttons em linha com quebra) ---------- */
 [class*="st-key-chips-"]{flex-direction:row !important;flex-wrap:wrap;gap:10px;}
 [class*="st-key-chips-"] [data-testid="stElementContainer"]{width:auto !important;flex:0 0 auto;}
