@@ -268,10 +268,10 @@ class TestTextoStatus:
 
 class TestMontarResultado:
     CATALOGO = catalog(
-        {**track(popularidade=8), "faixa": "MPB baixa", "genero": "Choro",
+        {**track(popularidade=8), "faixa": "Choro baixa", "genero": "Choro",
          "energia": .34, "bpm": 96, "artista": "Beira de Rio",
          "cidade": "Paraty", "ano": 2022},
-        {**track(popularidade=15), "faixa": "MPB média", "genero": "Choro",
+        {**track(popularidade=15), "faixa": "Choro média", "genero": "Choro",
          "energia": .38, "bpm": 100, "artista": "Lume",
          "cidade": "Florianópolis", "ano": 2023},
         {**track(popularidade=9), "faixa": "Punk", "genero": "Punk",
@@ -309,7 +309,7 @@ class TestMontarResultado:
         assert self.montar(["aconchego"], ["Choro"], ["Dora Lima"])["precisao"] == 91
 
     def test_coverage_is_measured_against_the_narrowed_universe(self) -> None:
-        # Inside MPB, both tracks are at or below 15, so a ceiling of 15 keeps
+        # Inside Choro, both tracks are at or below 15, so a ceiling of 15 keeps
         # everything — even though one of the three catalogue tracks is out.
         assert self.montar([], ["Choro"], [], teto=15)["cobertura"] == 100
 
