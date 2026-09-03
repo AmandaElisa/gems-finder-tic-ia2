@@ -138,6 +138,51 @@ Fire and Marvin Gaye; Anitta was the only recognisable Brazilian artist. Any UI
 copy or genre grouping that assumes `funk` means Brazilian funk will mislabel
 the catalogue.
 
+
+**4. The independent-artist guarantee does not hold for the Brazilian families.**
+Measured, and it is the most serious limitation found so far. The rule marks an
+artist consolidated when their best track reaches popularity 50. Under it,
+**Gilberto Gil (43), Caetano Veloso (46), Chico Buarque (47), Roberto Carlos
+(44), Tim Maia (44) and Maria Bethânia (45) are all classified Independente** —
+so the app offers the Brazilian canon as hidden gems, to the persona who is
+Brazilian.
+
+The cause is not a badly chosen threshold. Only 11,1% of Brazilian tracks reach
+popularity 50 against 23,6% catalogue-wide, because Spotify's popularity index
+reflects global consumption. Two repairs were tested and both failed:
+
+- A **per-family percentile** threshold (90th percentile of each family's
+  artists) puts the bar at 54–57 for the Brazilian families. Gilberto Gil at 43
+  stays independent, because within his own family he genuinely sits
+  mid-distribution by this metric.
+- **Catalogue size** as a co-signal does not separate either: Mantu Chhuria, an
+  Odia artist whose tracks are mislabelled into `samba`, has 10 tracks in the
+  dataset — the same as Caetano Veloso.
+
+The reason no threshold works is that the buckets are contaminated and the index
+does not rank the canon. The most popular artists inside the Brazilian families
+are not Brazilian canon at all: MPB is topped by **Sevek and Öwnboss**,
+Brazilian EDM producers, and Samba e pagode by **Anitta, J Balvin and Missy
+Elliott**.
+
+**What follows for the report:** the independent-artist claim is sound for the
+global catalogue and unreliable for the Brazilian families. Say so rather than
+letting a reader discover Gilberto Gil in the results.
+
+**5. Bossa nova is in the catalogue, under another name.** An earlier reading of
+this spec said bossa nova does not exist in the dataset. That was wrong: it
+searched for the *tag*, not the music. **Astrud Gilberto, João Gilberto and Stan
+Getz all sit at popularity 68 inside `samba`/`pagode`.** There is no `bossa`
+genre, but the recordings are there — so naming a family "MPB e Bossa Nova"
+would be defensible, unlike Lo-fi, which really is absent.
+
+**6. Some genre buckets carry mislabelled foreign music, and the eligibility
+filter selects for it.** The low-popularity, independent-artist slice of `samba`
+is where the scrape's junk lives: Odia and Bollywood tracks tagged `samba` with
+no other genre, including *Kalank*, a 2019 Hindi film song. They surface
+precisely because the real samba artists are filtered out as too popular. The
+filter is working; the tail it selects is dirty.
+
 ## 7. Open questions
 
 - [ ] **Do we need FastAPI and Docker?** Technically, no: Streamlit is Python
