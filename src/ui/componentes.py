@@ -92,7 +92,7 @@ def gema_topo_html(faixa: Mapping[str, Any]) -> str:
     return (
         f'<div class="gf-gtop">{mascote(cor, humor_da_faixa(faixa), 44)}'
         f'<span class="txt"><b>{faixa["faixa"]}</b>'
-        f'<i>{faixa["artista"]} · {faixa["cidade"]}, {faixa["ano"]}</i></span>'
+        f'<i>{faixa["artista"]}</i></span>'
         f'<span class="mt"><strong>{faixa["match"]}%</strong><small>match</small></span></div>'
         f'<div class="gf-meta"><span class="gf-badge" style="background:{cor}">{selo}</span>'
         f'<span class="gf-badge">{faixa["genero"]}</span>'

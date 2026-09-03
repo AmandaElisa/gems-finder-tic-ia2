@@ -14,6 +14,7 @@ from typing import Any, Mapping, NamedTuple, Sequence
 import numpy as np
 import pandas as pd
 
+from src import artefatos
 from src.dados import ATRIBUTOS, PESOS, PRECISAO_8, PERFIL_USUARIO, TETO_CONTA, VIBES
 from src.tema import LIMA, PERI, ROSA
 
@@ -43,9 +44,25 @@ def media(faixas: pd.DataFrame) -> dict[str, float]:
     return {atributo: float(faixas[atributo].mean()) for atributo in ATRIBUTOS}
 
 
+def _do_genero(catalogo: pd.DataFrame, generos: Sequence[str]) -> pd.DataFrame:
+    """Faixas que pertencem a qualquer um dos gêneros dados.
+
+    Uma faixa pertence a vários gêneros, e a coluna `generos` guarda todos. A
+    coluna `genero` é só o primeiro deles em ordem alfabética — estável para
+    exibir, mas errada para filtrar: escolher "rock" perderia uma faixa cujos
+    gêneros são ["alt-rock", "rock"]. Sem a lista, cai na coluna simples.
+    """
+    procurados = set(generos)
+    if "generos" in catalogo.columns:
+        pertence = catalogo["generos"].apply(
+            lambda lista: bool(procurados & set(lista)))
+        return catalogo[pertence]
+    return catalogo[catalogo["genero"].isin(list(procurados))]
+
+
 def centro(catalogo: pd.DataFrame, genero: str) -> dict[str, float]:
     """Centroide de atributos de áudio das faixas de um gênero."""
-    return media(catalogo[catalogo["genero"] == genero])
+    return media(_do_genero(catalogo, [genero]))
 
 
 def media_de_vetores(vetores: Sequence[Mapping[str, float]]) -> dict[str, float]:
@@ -62,7 +79,7 @@ def universo(catalogo: pd.DataFrame, generos: Sequence[str]) -> pd.DataFrame:
     """Universo de busca: o catálogo todo, ou só as faixas dos gêneros escolhidos."""
     if not generos:
         return catalogo
-    return catalogo[catalogo["genero"].isin(list(generos))]
+    return _do_genero(catalogo, generos)
 
 
 class Criterio(NamedTuple):
@@ -165,7 +182,18 @@ def rotulo_profundidade(teto: int) -> str:
 
 
 def humor_da_faixa(faixa: Mapping[str, Any]) -> str:
-    """Expressão da mascote que combina com os atributos da faixa."""
+    """Expressão da mascote que combina com a faixa.
+
+    Se a faixa já traz o mood do cluster, usamos a expressão daquele mood: a
+    carinha ao lado do nome não pode discordar do rótulo mostrado logo abaixo
+    dela. Sem essa coluna, cai nos limiares herdados do protótipo.
+    """
+    mood = faixa.get("mood")
+    if mood:
+        apresentacao = artefatos.APRESENTACAO.get(mood)
+        if apresentacao:
+            return apresentacao["humor"]
+
     if float(faixa["valencia"]) < .3:
         return "triste"
     if float(faixa["energia"]) > .75:

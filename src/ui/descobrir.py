@@ -30,7 +30,7 @@ def _grupo(titulo: str, nota: str) -> None:
 
 def _selecao_vibe() -> None:
     """Os 4 cards de vibe, um por coluna — o card inteiro é clicável, e alterna."""
-    for coluna, (chave, vibe) in zip(st.columns(4), VIBES.items()):
+    for coluna, (chave, vibe) in zip(st.columns(len(VIBES)), VIBES.items()):
         with coluna:
             escolhida = chave in st.session_state.vibes
             classe = "gf-vibe on" if escolhida else "gf-vibe"

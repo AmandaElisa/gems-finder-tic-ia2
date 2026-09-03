@@ -161,16 +161,20 @@ class TestCriteriosAtivos:
 
     def test_one_group_per_selection_kind_in_ui_order(self) -> None:
         ativos = criterios_ativos(self.CATALOGO, self.ARTISTAS,
-                                  ["chill"], ["MPB"], ["Dora Lima"])
-        assert [c.titulo for c in ativos] == ["Chill", "MPB", "parecido com Dora Lima"]
+                                  ["aconchego"], ["MPB"], ["Dora Lima"])
+        assert [c.titulo for c in ativos] == ["Aconchego", "MPB", "parecido com Dora Lima"]
 
     def test_several_vibes_collapse_into_one_averaged_criterion(self) -> None:
         ativos = criterios_ativos(self.CATALOGO, self.ARTISTAS,
-                                  ["chill", "treino"], [], [])
+                                  ["aconchego", "treino"], [], [])
         assert len(ativos) == 1
-        assert ativos[0].titulo == "Chill + Treino"
-        # Chill's energia is .35 and Treino's is .92.
-        assert ativos[0].alvo["energia"] == pytest.approx(.635)
+        assert ativos[0].titulo == "Aconchego + Treino"
+        # The expected value is derived from VIBES rather than hard-coded:
+        # the targets are measured cluster centroids, so they move whenever the
+        # notebook re-runs. What must hold is the averaging, not the number.
+        esperado = (VIBES["aconchego"]["alvo"]["energia"]
+                    + VIBES["treino"]["alvo"]["energia"]) / 2
+        assert ativos[0].alvo["energia"] == pytest.approx(esperado)
 
     def test_a_genre_criterion_is_that_genre_average_over_the_whole_catalogue(self) -> None:
         ativos = criterios_ativos(self.CATALOGO, self.ARTISTAS, [], ["MPB"], [])
@@ -192,19 +196,19 @@ class TestCriteriosAtivos:
         assert ativos[0].alvo["energia"] == pytest.approx(.66)  # (.42 + .90) / 2
 
     def test_the_vibe_context_names_every_selected_vibe(self) -> None:
-        ativos = criterios_ativos(self.CATALOGO, self.ARTISTAS, ["chill", "foco"], [], [])
-        assert ativos[0].ctx == "bate com a vibe Chill + Foco"
+        ativos = criterios_ativos(self.CATALOGO, self.ARTISTAS, ["aconchego", "foco"], [], [])
+        assert ativos[0].ctx == "bate com a vibe Aconchego + Foco"
 
 
 class TestTextoStatus:
     def test_lists_all_three_groups_in_ui_order(self) -> None:
-        assert texto_status(["chill"], ["MPB"], ["Dora Lima"], 18) == (
-            "Buscando por vibe <b>Chill</b>, gênero <b>MPB</b>, "
+        assert texto_status(["aconchego"], ["MPB"], ["Dora Lima"], 18) == (
+            "Buscando por vibe <b>Aconchego</b>, gênero <b>MPB</b>, "
             "parecido com <b>Dora Lima</b>, com popularidade até <b>18</b>.")
 
     def test_joins_several_vibes_and_genres_with_plus(self) -> None:
-        assert texto_status(["chill", "treino"], ["MPB", "Samba"], [], 7) == (
-            "Buscando por vibe <b>Chill + Treino</b>, gênero <b>MPB + Samba</b>, "
+        assert texto_status(["aconchego", "treino"], ["MPB", "Samba"], [], 7) == (
+            "Buscando por vibe <b>Aconchego + Treino</b>, gênero <b>MPB + Samba</b>, "
             "com popularidade até <b>7</b>.")
 
     def test_joins_several_artists_with_commas(self) -> None:
@@ -260,17 +264,17 @@ class TestMontarResultado:
         assert {f["genero"] for f in resultado["faixas"]} == {"MPB", "Punk"}
 
     def test_the_title_lists_every_active_criterion(self) -> None:
-        assert self.montar(["chill"], ["MPB"], ["Dora Lima"])["titulo"] == (
-            "Joias — Chill · MPB · parecido com Dora Lima")
+        assert self.montar(["aconchego"], ["MPB"], ["Dora Lima"])["titulo"] == (
+            "Joias — Aconchego · MPB · parecido com Dora Lima")
 
     def test_the_context_joins_the_criteria_with_e(self) -> None:
-        assert self.montar(["chill"], ["MPB"], [])["ctx"] == (
-            "bate com a vibe Chill e representa o som de MPB")
+        assert self.montar(["aconchego"], ["MPB"], [])["ctx"] == (
+            "bate com a vibe Aconchego e representa o som de MPB")
 
     def test_precision_follows_the_number_of_active_groups(self) -> None:
-        assert self.montar(["chill"], [], [])["precisao"] == 87
-        assert self.montar(["chill"], ["MPB"], [])["precisao"] == 90
-        assert self.montar(["chill"], ["MPB"], ["Dora Lima"])["precisao"] == 91
+        assert self.montar(["aconchego"], [], [])["precisao"] == 87
+        assert self.montar(["aconchego"], ["MPB"], [])["precisao"] == 90
+        assert self.montar(["aconchego"], ["MPB"], ["Dora Lima"])["precisao"] == 91
 
     def test_coverage_is_measured_against_the_narrowed_universe(self) -> None:
         # Inside MPB, both tracks are at or below 15, so a ceiling of 15 keeps
@@ -278,10 +282,10 @@ class TestMontarResultado:
         assert self.montar([], ["MPB"], [], teto=15)["cobertura"] == 100
 
     def test_one_vibe_tints_the_heading_with_its_colour(self) -> None:
-        assert self.montar(["chill"], [], [])["cor"] == VIBES["chill"]["cor"]
+        assert self.montar(["aconchego"], [], [])["cor"] == VIBES["aconchego"]["cor"]
 
     def test_several_vibes_fall_back_to_lime(self) -> None:
-        assert self.montar(["chill", "treino"], [], [])["cor"] == LIMA
+        assert self.montar(["aconchego", "treino"], [], [])["cor"] == LIMA
 
     def test_no_vibe_falls_back_to_lime(self) -> None:
         assert self.montar([], ["MPB"], [])["cor"] == LIMA
@@ -291,8 +295,8 @@ class TestMontarResultado:
             self.montar([], [], [])
 
     def test_an_empty_result_still_reports_zero_average_match(self) -> None:
-        assert self.montar(["chill"], [], [], teto=1)["faixas"] == []
-        assert self.montar(["chill"], [], [], teto=1)["media_match"] == 0
+        assert self.montar(["aconchego"], [], [], teto=1)["faixas"] == []
+        assert self.montar(["aconchego"], [], [], teto=1)["media_match"] == 0
 
 
 class TestRar:
