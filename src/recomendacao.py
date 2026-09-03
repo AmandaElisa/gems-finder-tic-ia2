@@ -16,7 +16,7 @@ import pandas as pd
 from src import artefatos
 from src import generos as familias
 from src.dados import ATRIBUTOS, PESOS, PERFIL_USUARIO, TETO_CONTA, VIBES
-from src.tema import LIMA, PERI, ROSA
+from src.tema import CREME, LIMA, PERI, ROSA
 
 
 def round_js(valor: float) -> int:
@@ -24,10 +24,20 @@ def round_js(valor: float) -> int:
     return math.floor(valor + 0.5)
 
 
-def match(faixa: Mapping[str, Any], alvo: Mapping[str, float]) -> int:
-    """Afinidade 31–99 entre uma faixa e um vetor-alvo de atributos de áudio.
+# Quanto cada ponto de popularidade abaixo de 30 vale no ranking. Vem do
+# protótipo e não foi calibrado.
+BONUS_POR_PONTO_DE_OBSCURIDADE = 0.15
 
-    Distância ponderada absoluta + bônus de obscuridade pela popularidade baixa.
+
+def match(faixa: Mapping[str, Any], alvo: Mapping[str, float]) -> int:
+    """Afinidade sonora 31–99 entre uma faixa e um vetor-alvo, e só isso.
+
+    É distância ponderada absoluta entre os atributos de áudio, sem nenhum
+    componente de raridade. O bônus de obscuridade saiu daqui: ele dava pontos
+    a uma faixa por ser impopular, não por soar parecida, e num app onde tudo é
+    impopular por construção isso inflava o número que a usuária lê como
+    "afinidade". A obscuridade continua influenciando a ORDEM dos resultados,
+    em `pontuacao_de_garimpo`, que é onde ela deve agir.
     """
     pesos = np.array([PESOS[a] for a in ATRIBUTOS])
     diferencas = np.abs(
@@ -35,8 +45,19 @@ def match(faixa: Mapping[str, Any], alvo: Mapping[str, float]) -> int:
         - np.array([float(alvo[a]) for a in ATRIBUTOS])
     )
     distancia = float(np.dot(pesos, diferencas))
-    bruto = 100 - distancia * 135 + (30 - float(faixa["popularidade"])) * 0.15
-    return max(31, min(99, round_js(bruto)))
+    return max(31, min(99, round_js(100 - distancia * 135)))
+
+
+def pontuacao_de_garimpo(faixa: Mapping[str, Any],
+                         alvo: Mapping[str, float]) -> float:
+    """Afinidade mais o bônus de raridade — decide a ordem, não a exibição.
+
+    Duas faixas igualmente parecidas com o alvo: a menos ouvida vem primeiro,
+    porque o produto é sobre descoberta. Mas o número mostrado no cartão segue
+    sendo a afinidade pura.
+    """
+    return match(faixa, alvo) + (
+        (30 - float(faixa["popularidade"])) * BONUS_POR_PONTO_DE_OBSCURIDADE)
 
 
 def media(faixas: pd.DataFrame) -> dict[str, float]:
@@ -133,13 +154,24 @@ def texto_status(vibes: Sequence[str], generos: Sequence[str],
     return f"Buscando por {descricao}, com popularidade até <b>{teto}</b>."
 
 
+# Limites das faixas de raridade: são os quartis da popularidade das faixas
+# elegíveis até 50, então as quatro bandas têm tamanho parecido (28% / 24% /
+# 24% / 25%). Os antigos 8 e 17 foram calibrados para um slider que ia até 40
+# e deixavam a banda de cima com metade do catálogo.
+BANDAS_DE_RARIDADE: tuple[tuple[int, str, str], ...] = (
+    (20, "Joia bruta", LIMA),
+    (27, "Rara", ROSA),
+    (36, "Pouco ouvida", PERI),
+)
+SELO_MAIS_ALTO = ("Em ascensão", CREME)
+
+
 def rar(popularidade: int) -> tuple[str, str]:
     """Selo de raridade e a cor correspondente, a partir da popularidade."""
-    if popularidade <= 8:
-        return "Joia bruta", LIMA
-    if popularidade <= 17:
-        return "Rara", ROSA
-    return "Pouco ouvida", PERI
+    for teto, nome, cor in BANDAS_DE_RARIDADE:
+        if popularidade <= teto:
+            return nome, cor
+    return SELO_MAIS_ALTO
 
 
 def elegiveis_para_garimpo(base: pd.DataFrame) -> pd.DataFrame:
@@ -169,10 +201,14 @@ def garimpar(base: pd.DataFrame, alvo: Mapping[str, float], teto: int,
     elegiveis = base[base["popularidade"] <= teto].copy()
     if elegiveis.empty:
         return elegiveis.assign(match=pd.Series(dtype="int64"))
-    elegiveis["match"] = [match(linha, alvo) for _, linha in elegiveis.iterrows()]
+    linhas = list(elegiveis.iterrows())
+    elegiveis["match"] = [match(linha, alvo) for _, linha in linhas]
+    # A ordem usa a pontuação com bônus de raridade; a coluna `match` que a UI
+    # exibe fica sendo só a afinidade.
+    elegiveis["_ordem"] = [pontuacao_de_garimpo(linha, alvo) for _, linha in linhas]
     # kind="stable" preserva a ordem do catálogo nos empates, como o sort do JS.
-    return (elegiveis.sort_values("match", ascending=False, kind="stable")
-            .head(limite).reset_index(drop=True))
+    return (elegiveis.sort_values("_ordem", ascending=False, kind="stable")
+            .head(limite).drop(columns="_ordem").reset_index(drop=True))
 
 
 def teto_minimo_util(base: pd.DataFrame) -> int | None:
@@ -205,12 +241,16 @@ def cobertura(base: pd.DataFrame, teto: int) -> int:
 
 
 def rotulo_profundidade(teto: int) -> str:
-    """Nome amigável da faixa de popularidade escolhida no slider."""
-    if teto <= 10:
+    """Nome amigável da faixa de popularidade escolhida no slider.
+
+    Usa os mesmos limites do selo de raridade, para o texto do slider e o selo
+    do cartão nunca discordarem.
+    """
+    if teto <= BANDAS_DE_RARIDADE[0][0]:
         return "Praticamente invisível"
-    if teto <= 20:
+    if teto <= BANDAS_DE_RARIDADE[1][0]:
         return "Bem underground"
-    if teto <= 30:
+    if teto <= BANDAS_DE_RARIDADE[2][0]:
         return "Conhecida em nicho"
     return "Começando a aparecer"
 

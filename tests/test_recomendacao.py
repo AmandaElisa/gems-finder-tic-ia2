@@ -22,6 +22,7 @@ from src.recomendacao import (
     garimpar,
     humor_da_faixa,
     match,
+    pontuacao_de_garimpo,
     media_de_vetores,
     montar_resultado,
     nome_do_email,
@@ -75,12 +76,36 @@ class TestMatch:
         alvo = {atributo: 0.0 for atributo in ATRIBUTOS}
         assert match({**longe, "popularidade": 30}, alvo) == 31
 
-    def test_lower_popularity_earns_the_obscurity_bonus(self) -> None:
-        # 0.2 away on the 0.25-weight axis: distance 0.05, raw score 93.25
-        # before the bonus, plus (30 - popularidade) * 0.15.
+    def test_popularity_does_not_move_the_match(self) -> None:
+        # 0.2 away on the 0.25-weight axis: distance 0.05, score 93.25.
+        # The obscurity bonus used to live here and made the same sound score
+        # 96 when the track was obscure - which read as sonic affinity while
+        # being a discount for being unknown. It moved to the ranking.
         alvo = {**NEUTRAL, "energia": .7}
         assert match(track(popularidade=30), alvo) == 93
-        assert match(track(popularidade=10), alvo) == 96
+        assert match(track(popularidade=10), alvo) == 93
+        assert match(track(popularidade=0), alvo) == 93
+
+
+class TestPontuacaoDeGarimpo:
+    """A raridade decide a ordem, não o número exibido."""
+
+    def test_equals_the_match_at_the_neutral_popularity(self) -> None:
+        alvo = {**NEUTRAL, "energia": .7}
+        faixa = track(popularidade=30)
+        assert pontuacao_de_garimpo(faixa, alvo) == pytest.approx(match(faixa, alvo))
+
+    def test_the_obscure_track_outranks_an_equally_similar_one(self) -> None:
+        alvo = {**NEUTRAL, "energia": .7}
+        obscura, conhecida = track(popularidade=10), track(popularidade=30)
+        assert match(obscura, alvo) == match(conhecida, alvo)      # mesmo som
+        assert pontuacao_de_garimpo(obscura, alvo) > pontuacao_de_garimpo(conhecida, alvo)
+
+    def test_the_bonus_is_fifteen_hundredths_per_point(self) -> None:
+        alvo = {**NEUTRAL, "energia": .7}
+        faixa = track(popularidade=10)
+        assert pontuacao_de_garimpo(faixa, alvo) == pytest.approx(
+            match(faixa, alvo) + 20 * 0.15)
 
 
 class TestMediaDeVetores:
@@ -307,30 +332,46 @@ class TestMontarResultado:
 
 
 class TestRar:
-    @pytest.mark.parametrize("popularidade, selo, cor", [
-        (0, "Joia bruta", LIMA),
-        (8, "Joia bruta", LIMA),        # boundary: <= 8 is still raw
-        (9, "Rara", ROSA),
-        (17, "Rara", ROSA),             # boundary: <= 17 is still rare
-        (18, "Pouco ouvida", PERI),
+    # Os limites são os quartis da popularidade das faixas elegíveis até 50,
+    # então as quatro bandas têm tamanho parecido. Os antigos 8 e 17 vinham de
+    # um slider que ia só até 40.
+    @pytest.mark.parametrize("popularidade, selo", [
+        (3, "Joia bruta"),
+        (20, "Joia bruta"),        # limite
+        (21, "Rara"),
+        (27, "Rara"),             # limite
+        (28, "Pouco ouvida"),
+        (36, "Pouco ouvida"),     # limite
+        (37, "Em ascensão"),
+        (50, "Em ascensão"),
     ])
-    def test_boundaries(self, popularidade: int, selo: str, cor: str) -> None:
-        assert rar(popularidade) == (selo, cor)
+    def test_boundaries(self, popularidade: int, selo: str) -> None:
+        assert rar(popularidade)[0] == selo
 
+    def test_every_band_has_its_own_colour(self) -> None:
+        cores = {rar(p)[1] for p in (3, 21, 28, 37)}
+        assert len(cores) == 4
 
 class TestRotuloProfundidade:
     @pytest.mark.parametrize("teto, esperado", [
         (5, "Praticamente invisível"),
-        (10, "Praticamente invisível"),  # boundary
-        (11, "Bem underground"),
-        (20, "Bem underground"),         # boundary
-        (21, "Conhecida em nicho"),
-        (30, "Conhecida em nicho"),      # boundary
-        (31, "Começando a aparecer"),
+        (20, "Praticamente invisível"),  # limite
+        (21, "Bem underground"),
+        (27, "Bem underground"),         # limite
+        (28, "Conhecida em nicho"),
+        (36, "Conhecida em nicho"),      # limite
+        (37, "Começando a aparecer"),
+        (50, "Começando a aparecer"),
     ])
     def test_boundaries(self, teto: int, esperado: str) -> None:
         assert rotulo_profundidade(teto) == esperado
 
+    def test_it_agrees_with_the_rarity_seal(self) -> None:
+        # O texto do slider e o selo do cartão usam os mesmos limites: se
+        # divergirem, a tela diz duas coisas sobre a mesma faixa.
+        from src.recomendacao import BANDAS_DE_RARIDADE
+        for teto, _, _ in BANDAS_DE_RARIDADE:
+            assert rotulo_profundidade(teto) != rotulo_profundidade(teto + 1)
 
 class TestHumorDaFaixa:
     def test_sadness_wins_over_high_energy(self) -> None:
