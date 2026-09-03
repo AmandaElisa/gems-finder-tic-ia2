@@ -71,15 +71,19 @@ def barras_atributos_html(valores: Mapping[str, Any]) -> str:
 
 
 def metricas_html(resultado: Mapping[str, Any]) -> str:
-    """Linha com as 4 métricas; as duas do modelo levam o selo MODELO."""
+    """Linha com as métricas; a Cobertura leva o selo MODELO por ser medida.
+
+    A Precisão @8 saiu daqui. Ela era um placeholder herdado do protótipo, e a
+    legenda afirmava "sugestões aprovadas nos testes com usuários" — teste que
+    nunca aconteceu. Métrica fabricada é pior que métrica ausente; volta quando
+    houver protocolo de avaliação escrito.
+    """
     return (
         '<div class="gf-metrics">'
         f'<div class="gf-met a"><p>Joias encontradas</p><strong>{len(resultado["faixas"])}</strong>'
         '<small>as 8 melhores do ranking</small></div>'
         f'<div class="gf-met b"><p>Match médio</p><strong>{resultado["media_match"]}%</strong>'
         f'<small>{resultado["sub_match"]}</small></div>'
-        f'<div class="gf-met modelo"><p>Precisão @8</p><strong>{resultado["precisao"]}%</strong>'
-        '<small>sugestões aprovadas nos testes com usuários</small></div>'
         f'<div class="gf-met modelo"><p>Cobertura</p><strong>{resultado["cobertura"]}%</strong>'
         f'<small>{resultado["sub_cobertura"]}</small></div>'
         '</div>'

@@ -156,7 +156,7 @@ hr{border-color:rgba(20,20,20,.15);}
 .gf-sec{display:flex;align-items:center;gap:12px;margin:30px 0 12px;flex-wrap:wrap;}
 .gf-sec h3{font-family:var(--d);font-size:24px;font-weight:600;margin:0;}
 .gf-sec p{margin:0;font-size:13.5px;color:var(--mute);}
-.gf-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+.gf-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
 .gf-met{background:#fff;border:2px solid var(--tinta);border-radius:18px;padding:14px 18px;
   box-shadow:4px 4px 0 var(--tinta);}
 .gf-met.a{background:var(--lima);} .gf-met.b{background:var(--peri);}

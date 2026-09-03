@@ -25,7 +25,6 @@ from src.recomendacao import (
     media_de_vetores,
     montar_resultado,
     nome_do_email,
-    precisao_combinada,
     rar,
     rotulo_profundidade,
     round_js,
@@ -137,8 +136,8 @@ class TestUniversoComFamilias:
     def test_a_family_name_expands_to_its_genres(self) -> None:
         from src import generos
 
-        expandido = generos.expandir("Samba e pagode")
-        assert expandido == {"samba", "pagode"}
+        expandido = generos.expandir("MPB, samba, pagode e bossa nova")
+        assert expandido == {"mpb", "brazil", "samba", "pagode"}
 
     def test_a_raw_genre_passes_through_unchanged(self) -> None:
         from src import generos
@@ -154,27 +153,8 @@ class TestUniversoComFamilias:
             {**track(), "faixa": "A", "generos": ["samba"], "genero": "samba"},
             {**track(), "faixa": "B", "generos": ["techno"], "genero": "techno"},
         )
-        # A pessoa clicou na ficha "Samba e pagode"; a faixa está como "samba".
-        assert list(universo(base, ["Samba e pagode"])["faixa"]) == ["A"]
-
-
-class TestPrecisaoCombinada:
-    @pytest.mark.parametrize("n_criterios, esperado", [
-        (1, 87),
-        (2, 90),
-        (3, 91),    # the +7 cap bites before 3 * 3 does
-    ])
-    def test_rises_with_each_combined_criterion(self, n_criterios: int,
-                                                esperado: int) -> None:
-        assert precisao_combinada(n_criterios) == esperado
-
-    def test_no_criterion_is_the_bare_base(self) -> None:
-        # Unreachable from the UI — the dig button is disabled with nothing
-        # selected — but the function stays total rather than raising.
-        assert precisao_combinada(0) == 84
-
-    def test_the_bonus_never_exceeds_the_cap(self) -> None:
-        assert precisao_combinada(99) == precisao_combinada(3)
+        # A pessoa clicou na ficha da família; a faixa está como "samba".
+        assert list(universo(base, ["MPB, samba, pagode e bossa nova"])["faixa"]) == ["A"]
 
 
 class TestCriteriosAtivos:
@@ -302,11 +282,6 @@ class TestMontarResultado:
     def test_the_context_joins_the_criteria_with_e(self) -> None:
         assert self.montar(["aconchego"], ["Choro"], [])["ctx"] == (
             "bate com a vibe Aconchego e representa o som de Choro")
-
-    def test_precision_follows_the_number_of_active_groups(self) -> None:
-        assert self.montar(["aconchego"], [], [])["precisao"] == 87
-        assert self.montar(["aconchego"], ["Choro"], [])["precisao"] == 90
-        assert self.montar(["aconchego"], ["Choro"], ["Dora Lima"])["precisao"] == 91
 
     def test_coverage_is_measured_against_the_narrowed_universe(self) -> None:
         # Inside Choro, both tracks are at or below 15, so a ceiling of 15 keeps

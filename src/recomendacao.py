@@ -15,7 +15,7 @@ import pandas as pd
 
 from src import artefatos
 from src import generos as familias
-from src.dados import ATRIBUTOS, PESOS, PRECISAO_8, PERFIL_USUARIO, TETO_CONTA, VIBES
+from src.dados import ATRIBUTOS, PESOS, PERFIL_USUARIO, TETO_CONTA, VIBES
 from src.tema import LIMA, PERI, ROSA
 
 
@@ -131,15 +131,6 @@ def texto_status(vibes: Sequence[str], generos: Sequence[str],
         partes.append("parecido com <b>" + ", ".join(favoritos) + "</b>")
     descricao = ", ".join(partes) or "<b>escolha ao menos um critério acima</b>"
     return f"Buscando por {descricao}, com popularidade até <b>{teto}</b>."
-
-
-def precisao_combinada(n_criterios: int) -> int:
-    """Precisão @8 PLACEHOLDER: sobe com cada critério combinado no passo 1.
-
-    Não é medida — ver o TODO em `src/dados.py::PRECISAO_8`.
-    """
-    return PRECISAO_8["base"] + min(PRECISAO_8["bonus_maximo"],
-                                    n_criterios * PRECISAO_8["por_criterio"])
 
 
 def rar(popularidade: int) -> tuple[str, str]:
@@ -276,7 +267,6 @@ def montar_resultado(catalogo: pd.DataFrame, artistas: pd.DataFrame,
         "teto_minimo": teto_minimo_util(base),
         "titulo": "Joias — " + " · ".join(c.titulo for c in criterios),
         "ctx": " e ".join(c.ctx for c in criterios),
-        "precisao": precisao_combinada(len(criterios)),
         "cobertura": cobertura(base, teto),
         "faixas": achadas.to_dict("records"),
         "media_match": round_js(achadas["match"].mean()) if len(achadas) else 0,
@@ -294,7 +284,6 @@ def montar_resultado_conta(catalogo: pd.DataFrame) -> dict[str, Any]:
     return {
         "titulo": "Joias pra você",
         "ctx": "ela combina com o perfil médio das suas mais ouvidas",
-        "precisao": PRECISAO_8["conta"],
         "cobertura": cobertura(catalogo, TETO_CONTA),
         "faixas": achadas.to_dict("records"),
         "media_match": round_js(achadas["match"].mean()) if len(achadas) else 0,

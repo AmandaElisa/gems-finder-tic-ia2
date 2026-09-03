@@ -50,17 +50,6 @@ ROTULOS_ATRIBUTOS: tuple[tuple[str, str], ...] = (
 # outro. Cor e expressão de cada vibe ficam em src/artefatos.py::APRESENTACAO.
 VIBES: dict[str, dict[str, Any]] = artefatos.vibes()
 
-# TODO: trocar pelos números reais da avaliação offline do modelo.
-# Por enquanto são PLACEHOLDERS herdados do protótipo aprovado. No garimpo
-# público a Precisão @8 é `base` + `por_criterio` pontos por critério combinado
-# no passo 1, com teto de `bonus_maximo` — 87 com um critério, 90 com dois, 91
-# com três. Nenhum desses números foi medido.
-PRECISAO_8: dict[str, int] = {
-    "base": 84,
-    "por_criterio": 3,
-    "bonus_maximo": 7,
-    "conta": 88,
-}
 
 # "Mais ouvidas" simuladas do testador conectado — constante TOPS do HTML.
 TOPS: tuple[tuple[str, str], ...] = (
