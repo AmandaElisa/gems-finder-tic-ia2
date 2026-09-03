@@ -22,7 +22,10 @@ from src.recomendacao import (
     garimpar,
     humor_da_faixa,
     match,
+    perfil_do_usuario,
+    pontuacao_de_garimpo,
     media_de_vetores,
+    descrever_perfil,
     montar_resultado,
     nome_do_email,
     rar,
@@ -75,12 +78,36 @@ class TestMatch:
         alvo = {atributo: 0.0 for atributo in ATRIBUTOS}
         assert match({**longe, "popularidade": 30}, alvo) == 31
 
-    def test_lower_popularity_earns_the_obscurity_bonus(self) -> None:
-        # 0.2 away on the 0.25-weight axis: distance 0.05, raw score 93.25
-        # before the bonus, plus (30 - popularidade) * 0.15.
+    def test_popularity_does_not_move_the_match(self) -> None:
+        # 0.2 away on the 0.25-weight axis: distance 0.05, score 93.25.
+        # The obscurity bonus used to live here and made the same sound score
+        # 96 when the track was obscure - which read as sonic affinity while
+        # being a discount for being unknown. It moved to the ranking.
         alvo = {**NEUTRAL, "energia": .7}
         assert match(track(popularidade=30), alvo) == 93
-        assert match(track(popularidade=10), alvo) == 96
+        assert match(track(popularidade=10), alvo) == 93
+        assert match(track(popularidade=0), alvo) == 93
+
+
+class TestPontuacaoDeGarimpo:
+    """A raridade decide a ordem, não o número exibido."""
+
+    def test_equals_the_match_at_the_neutral_popularity(self) -> None:
+        alvo = {**NEUTRAL, "energia": .7}
+        faixa = track(popularidade=30)
+        assert pontuacao_de_garimpo(faixa, alvo) == pytest.approx(match(faixa, alvo))
+
+    def test_the_obscure_track_outranks_an_equally_similar_one(self) -> None:
+        alvo = {**NEUTRAL, "energia": .7}
+        obscura, conhecida = track(popularidade=10), track(popularidade=30)
+        assert match(obscura, alvo) == match(conhecida, alvo)      # mesmo som
+        assert pontuacao_de_garimpo(obscura, alvo) > pontuacao_de_garimpo(conhecida, alvo)
+
+    def test_the_bonus_is_fifteen_hundredths_per_point(self) -> None:
+        alvo = {**NEUTRAL, "energia": .7}
+        faixa = track(popularidade=10)
+        assert pontuacao_de_garimpo(faixa, alvo) == pytest.approx(
+            match(faixa, alvo) + 20 * 0.15)
 
 
 class TestMediaDeVetores:
@@ -307,30 +334,46 @@ class TestMontarResultado:
 
 
 class TestRar:
-    @pytest.mark.parametrize("popularidade, selo, cor", [
-        (0, "Joia bruta", LIMA),
-        (8, "Joia bruta", LIMA),        # boundary: <= 8 is still raw
-        (9, "Rara", ROSA),
-        (17, "Rara", ROSA),             # boundary: <= 17 is still rare
-        (18, "Pouco ouvida", PERI),
+    # Os limites são os quartis da popularidade das faixas elegíveis até 50,
+    # então as quatro bandas têm tamanho parecido. Os antigos 8 e 17 vinham de
+    # um slider que ia só até 40.
+    @pytest.mark.parametrize("popularidade, selo", [
+        (3, "Joia bruta"),
+        (20, "Joia bruta"),        # limite
+        (21, "Rara"),
+        (27, "Rara"),             # limite
+        (28, "Pouco ouvida"),
+        (36, "Pouco ouvida"),     # limite
+        (37, "Em ascensão"),
+        (50, "Em ascensão"),
     ])
-    def test_boundaries(self, popularidade: int, selo: str, cor: str) -> None:
-        assert rar(popularidade) == (selo, cor)
+    def test_boundaries(self, popularidade: int, selo: str) -> None:
+        assert rar(popularidade)[0] == selo
 
+    def test_every_band_has_its_own_colour(self) -> None:
+        cores = {rar(p)[1] for p in (3, 21, 28, 37)}
+        assert len(cores) == 4
 
 class TestRotuloProfundidade:
     @pytest.mark.parametrize("teto, esperado", [
         (5, "Praticamente invisível"),
-        (10, "Praticamente invisível"),  # boundary
-        (11, "Bem underground"),
-        (20, "Bem underground"),         # boundary
-        (21, "Conhecida em nicho"),
-        (30, "Conhecida em nicho"),      # boundary
-        (31, "Começando a aparecer"),
+        (20, "Praticamente invisível"),  # limite
+        (21, "Bem underground"),
+        (27, "Bem underground"),         # limite
+        (28, "Conhecida em nicho"),
+        (36, "Conhecida em nicho"),      # limite
+        (37, "Começando a aparecer"),
+        (50, "Começando a aparecer"),
     ])
     def test_boundaries(self, teto: int, esperado: str) -> None:
         assert rotulo_profundidade(teto) == esperado
 
+    def test_it_agrees_with_the_rarity_seal(self) -> None:
+        # O texto do slider e o selo do cartão usam os mesmos limites: se
+        # divergirem, a tela diz duas coisas sobre a mesma faixa.
+        from src.recomendacao import BANDAS_DE_RARIDADE
+        for teto, _, _ in BANDAS_DE_RARIDADE:
+            assert rotulo_profundidade(teto) != rotulo_profundidade(teto + 1)
 
 class TestHumorDaFaixa:
     def test_sadness_wins_over_high_energy(self) -> None:
@@ -440,3 +483,62 @@ class TestNomeDoEmail:
     ])
     def test_derives_a_presentable_name(self, email: str, esperado: str) -> None:
         assert nome_do_email(email) == esperado
+
+class TestPerfilDoUsuario:
+    """O perfil vinha de uma constante no código enquanto a tela mostrava as
+    faixas reais de quem conectava. Estes testes travam a ligação entre as duas
+    coisas: o perfil sai das faixas que a pessoa realmente ouve."""
+
+    CATALOGO = catalog(
+        {**track(popularidade=40, energia=.9), "track_id": "aaa", "faixa": "A"},
+        {**track(popularidade=40, energia=.5), "track_id": "bbb", "faixa": "B"},
+        {**track(popularidade=40, energia=.1), "track_id": "ccc", "faixa": "C"},
+    )
+
+    def test_the_profile_is_the_mean_of_the_matched_tracks(self) -> None:
+        perfil = perfil_do_usuario(
+            self.CATALOGO, [{"id": "aaa"}, {"id": "ccc"}])
+        assert perfil.e_real
+        assert perfil.encontradas == 2
+        assert perfil.pedidas == 2
+        assert perfil.alvo["energia"] == pytest.approx(.5)   # (.9 + .1) / 2
+
+    def test_it_counts_what_was_asked_and_what_was_found(self) -> None:
+        # Quatro faixas pedidas, duas no catálogo: é essa fração que a tela
+        # mostra à pessoa, e mentir nela seria pior que não mostrar.
+        perfil = perfil_do_usuario(
+            self.CATALOGO,
+            [{"id": "aaa"}, {"id": "bbb"}, {"id": "zzz"}, {"id": "yyy"}])
+        assert (perfil.encontradas, perfil.pedidas) == (2, 4)
+
+    def test_no_match_falls_back_and_says_so(self) -> None:
+        perfil = perfil_do_usuario(self.CATALOGO, [{"id": "zzz"}])
+        assert not perfil.e_real
+        assert perfil.encontradas == 0
+
+    def test_no_tracks_at_all_is_not_a_real_profile(self) -> None:
+        # É o caso do login encenado: sem faixas, nada a cruzar.
+        assert not perfil_do_usuario(self.CATALOGO, []).e_real
+
+
+class TestDescreverPerfil:
+    """A frase do perfil era fixa no código e diria a mesma coisa para
+    qualquer pessoa."""
+
+    def test_it_names_the_two_most_extreme_attributes(self) -> None:
+        alvo = {**NEUTRAL, "energia": .95, "acustica": .02}
+        frase = descrever_perfil(alvo)
+        assert "energética" in frase
+        assert "elétrica" in frase
+        assert " e " in frase        # tem que ler como frase, não como lista
+
+    def test_the_opposite_profile_gets_the_opposite_words(self) -> None:
+        alvo = {**NEUTRAL, "energia": .05, "acustica": .98}
+        frase = descrever_perfil(alvo)
+        assert "calma" in frase
+        assert "acústica" in frase
+
+    def test_two_different_profiles_do_not_share_a_description(self) -> None:
+        intenso = {**NEUTRAL, "energia": .95, "valencia": .9}
+        melancolico = {**NEUTRAL, "energia": .1, "valencia": .05}
+        assert descrever_perfil(intenso) != descrever_perfil(melancolico)

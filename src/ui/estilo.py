@@ -114,15 +114,23 @@ hr{border-color:rgba(20,20,20,.15);}
 [class*="st-key-vibecard-"]{position:relative;}
 [class*="st-key-vibecard-"]:hover .gf-vibe{transform:translate(-2px,-2px);
   box-shadow:6px 6px 0 var(--tinta);}
-/* O card visual não pode interceptar o clique: ele é só desenho, e o botão
-   invisível embaixo é quem recebe. Sem isto o clique morre no <div>. */
+/* O card inteiro é clicável: o <div> é só desenho e não intercepta o clique,
+   e o <button> invisível é esticado por cima dele.
+   Mira `button` direto, sem depender de data-testid nem de classe .stButton —
+   esses são internos do Streamlit e mudam de versão para versão. Foi
+   exatamente o que quebrou o clique antes. */
 [class*="st-key-vibecard-"] .gf-vibe{pointer-events:none;}
-[class*="st-key-vibecard-"] [data-testid="stElementContainer"]:has(.stButton){
-  position:absolute;inset:0;z-index:3;margin:0;pointer-events:auto;}
-[class*="st-key-vibecard-"] .stButton, [class*="st-key-vibecard-"] .stButton > button{
-  width:100%;height:100%;min-width:0;}
-[class*="st-key-vibecard-"] .stButton > button{opacity:0;cursor:pointer;border-radius:20px;
-  box-shadow:none;padding:0;pointer-events:auto;}
+[class*="st-key-vibecard-"] button{
+  position:absolute;inset:0;width:100%;height:100%;min-width:0;
+  margin:0;padding:0;border:0;z-index:3;
+  opacity:0;cursor:pointer;border-radius:20px;box-shadow:none;
+  pointer-events:auto;}
+/* O wrapper do botão não pode empurrar o layout nem criar outro contexto de
+   posicionamento entre o card e o botão. */
+[class*="st-key-vibecard-"] button{position:absolute;}
+[class*="st-key-vibecard-"] div:has(> button),
+[class*="st-key-vibecard-"] div:has(> div > button){
+  position:static;margin:0;min-height:0;height:0;}
 
 /* selo que abre a faixa no Spotify — verde da marca, e é <a>, não botão */
 .gf-badge.gf-ouvir{background:var(--verde);color:#fff;text-decoration:none;
