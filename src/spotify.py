@@ -4,16 +4,18 @@ O app funciona em dois modos:
 * REAL — quando `.streamlit/secrets.toml` tem a seção [spotify] preenchida
   (client_id, client_secret, redirect_uri). Login de verdade, top faixas de
   verdade e playlist privada criada de verdade na conta.
-* SIMULADO — sem credenciais, tudo continua fake como no protótipo.
+* SIMULADO — sem credenciais, o login é encenado e o perfil mostrado
+  é um exemplo, marcado como tal na tela.
 
 Notas:
 * O redirect_uri precisa estar cadastrado igualzinho no dashboard do app em
   developer.spotify.com (ex.: http://127.0.0.1:8501 — o Spotify não aceita
   mais `localhost` em apps novos, só o IP de loopback).
-* O endpoint /v1/audio-features foi descontinuado para apps novos (nov/2024),
-  então o perfil de áudio do usuário segue SIMULADO mesmo no modo real.
-* As 32 faixas do catálogo são fictícias, então a playlist real nasce vazia,
-  com as joias listadas na descrição.
+* O endpoint /v1/audio-features foi descontinuado para apps novos (nov/2024).
+  Por isso os atributos NUNCA vêm da API: o perfil do usuário é montado
+  cruzando as faixas mais ouvidas dele com o nosso catálogo, por `track_id`.
+* O catálogo traz o track_id real de cada faixa, então a playlist criada nasce
+  preenchida.
 """
 
 from __future__ import annotations
@@ -87,10 +89,20 @@ def perfil(token: str) -> dict[str, str]:
             "email": dados.get("email", "")}
 
 
-def top_faixas(token: str, limite: int = 5) -> list[tuple[str, str]]:
-    """As faixas mais ouvidas do usuário: (título, artista)."""
+def top_faixas(token: str, limite: int = 50) -> list[dict[str, str]]:
+    """As faixas mais ouvidas do usuário, com o `id` de cada uma.
+
+    O `id` é o que permite montar o perfil de áudio real: os atributos não vêm
+    da API (o endpoint foi descontinuado), mas vêm do nosso catálogo, cruzado
+    por `track_id`. Sem o id não há cruzamento possível.
+
+    Pedimos 50 por padrão, não 5: quanto mais faixas, maior a chance de
+    cruzamento, e a tela mostra só as primeiras.
+    """
     dados = _get(token, "/me/top/tracks", limit=limite, time_range="medium_term")
-    return [(item["name"], ", ".join(artista["name"] for artista in item["artists"]))
+    return [{"id": item["id"],
+             "faixa": item["name"],
+             "artista": ", ".join(a["name"] for a in item["artists"])}
             for item in dados.get("items", [])]
 
 

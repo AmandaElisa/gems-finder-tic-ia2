@@ -22,8 +22,10 @@ from src.recomendacao import (
     garimpar,
     humor_da_faixa,
     match,
+    perfil_do_usuario,
     pontuacao_de_garimpo,
     media_de_vetores,
+    descrever_perfil,
     montar_resultado,
     nome_do_email,
     rar,
@@ -481,3 +483,62 @@ class TestNomeDoEmail:
     ])
     def test_derives_a_presentable_name(self, email: str, esperado: str) -> None:
         assert nome_do_email(email) == esperado
+
+class TestPerfilDoUsuario:
+    """O perfil vinha de uma constante no código enquanto a tela mostrava as
+    faixas reais de quem conectava. Estes testes travam a ligação entre as duas
+    coisas: o perfil sai das faixas que a pessoa realmente ouve."""
+
+    CATALOGO = catalog(
+        {**track(popularidade=40, energia=.9), "track_id": "aaa", "faixa": "A"},
+        {**track(popularidade=40, energia=.5), "track_id": "bbb", "faixa": "B"},
+        {**track(popularidade=40, energia=.1), "track_id": "ccc", "faixa": "C"},
+    )
+
+    def test_the_profile_is_the_mean_of_the_matched_tracks(self) -> None:
+        perfil = perfil_do_usuario(
+            self.CATALOGO, [{"id": "aaa"}, {"id": "ccc"}])
+        assert perfil.e_real
+        assert perfil.encontradas == 2
+        assert perfil.pedidas == 2
+        assert perfil.alvo["energia"] == pytest.approx(.5)   # (.9 + .1) / 2
+
+    def test_it_counts_what_was_asked_and_what_was_found(self) -> None:
+        # Quatro faixas pedidas, duas no catálogo: é essa fração que a tela
+        # mostra à pessoa, e mentir nela seria pior que não mostrar.
+        perfil = perfil_do_usuario(
+            self.CATALOGO,
+            [{"id": "aaa"}, {"id": "bbb"}, {"id": "zzz"}, {"id": "yyy"}])
+        assert (perfil.encontradas, perfil.pedidas) == (2, 4)
+
+    def test_no_match_falls_back_and_says_so(self) -> None:
+        perfil = perfil_do_usuario(self.CATALOGO, [{"id": "zzz"}])
+        assert not perfil.e_real
+        assert perfil.encontradas == 0
+
+    def test_no_tracks_at_all_is_not_a_real_profile(self) -> None:
+        # É o caso do login encenado: sem faixas, nada a cruzar.
+        assert not perfil_do_usuario(self.CATALOGO, []).e_real
+
+
+class TestDescreverPerfil:
+    """A frase do perfil era fixa no código e diria a mesma coisa para
+    qualquer pessoa."""
+
+    def test_it_names_the_two_most_extreme_attributes(self) -> None:
+        alvo = {**NEUTRAL, "energia": .95, "acustica": .02}
+        frase = descrever_perfil(alvo)
+        assert "energética" in frase
+        assert "elétrica" in frase
+        assert " e " in frase        # tem que ler como frase, não como lista
+
+    def test_the_opposite_profile_gets_the_opposite_words(self) -> None:
+        alvo = {**NEUTRAL, "energia": .05, "acustica": .98}
+        frase = descrever_perfil(alvo)
+        assert "calma" in frase
+        assert "acústica" in frase
+
+    def test_two_different_profiles_do_not_share_a_description(self) -> None:
+        intenso = {**NEUTRAL, "energia": .95, "valencia": .9}
+        melancolico = {**NEUTRAL, "energia": .1, "valencia": .05}
+        assert descrever_perfil(intenso) != descrever_perfil(melancolico)

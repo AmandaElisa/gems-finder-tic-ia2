@@ -318,15 +318,70 @@ def montar_resultado(catalogo: pd.DataFrame, artistas: pd.DataFrame,
     }
 
 
-def montar_resultado_conta(catalogo: pd.DataFrame) -> dict[str, Any]:
-    """Garimpo do modo testador: cruza o perfil médio do usuário com o catálogo."""
-    achadas = garimpar(catalogo, PERFIL_USUARIO, TETO_CONTA)
+class PerfilDoUsuario(NamedTuple):
+    """O perfil de áudio de quem está conectado, e quanto dele é medido."""
+
+    alvo: dict[str, float]
+    encontradas: int      # faixas do usuário que existem no nosso catálogo
+    pedidas: int          # faixas que o Spotify devolveu
+    e_real: bool          # False quando caiu no perfil de exemplo
+
+
+def perfil_do_usuario(catalogo: pd.DataFrame,
+                      faixas_do_usuario: Sequence[Mapping[str, Any]]
+                      ) -> PerfilDoUsuario:
+    """Monta o perfil de áudio cruzando as faixas do usuário com o catálogo.
+
+    Os atributos nunca vêm da API — o Spotify descontinuou `/v1/audio-features`
+    para apps novos. Eles vêm do nosso catálogo, e o `track_id` é a chave. O
+    catálogo já está deduplicado por `track_id`, que é o que torna esse
+    cruzamento seguro: no dado bruto a mesma faixa aparece uma vez por gênero e
+    um merge direto multiplicaria linhas.
+
+    Quando o cruzamento não acha nada, devolve o perfil de exemplo com
+    `e_real=False`, para a tela poder dizer isso em vez de fingir.
+    """
+    pedidas = len(faixas_do_usuario)
+    ids = {f["id"] for f in faixas_do_usuario if f.get("id")}
+    if ids and "track_id" in catalogo.columns:
+        encontradas = catalogo[catalogo["track_id"].isin(ids)]
+    else:
+        encontradas = catalogo.iloc[0:0]
+
+    if len(encontradas) == 0:
+        return PerfilDoUsuario(dict(PERFIL_USUARIO), 0, pedidas, False)
+    return PerfilDoUsuario(media(encontradas), len(encontradas), pedidas, True)
+
+
+def descrever_perfil(alvo: Mapping[str, float]) -> str:
+    """Frase curta sobre o perfil, derivada dos números e não escrita à mão."""
+    # Adjetivos, não substantivos: eles precisam se juntar com "e" e soar como
+    # frase. Uma versão anterior devolvia "com vocais com elétrica".
+    ADJETIVOS = {
+        "energia": ("calma", "energética"),
+        "valencia": ("melancólica", "alegre"),
+        "dancabilidade": ("pouco dançante", "dançante"),
+        "instrumentalidade": ("cantada", "instrumental"),
+        "acustica": ("elétrica", "acústica"),
+    }
+    # Os dois atributos que mais se afastam do meio são os que caracterizam.
+    fortes = sorted(ATRIBUTOS, key=lambda a: -abs(float(alvo[a]) - .5))[:2]
+    return " e ".join(ADJETIVOS[a][float(alvo[a]) >= .5] for a in fortes)
+
+
+def montar_resultado_conta(catalogo: pd.DataFrame,
+                           perfil: PerfilDoUsuario | None = None) -> dict[str, Any]:
+    """Garimpo do modo testador: cruza o perfil do usuário com o catálogo."""
+    if perfil is None:
+        perfil = PerfilDoUsuario(dict(PERFIL_USUARIO), 0, 0, False)
+    achadas = garimpar(catalogo, perfil.alvo, TETO_CONTA)
     return {
         "titulo": "Joias pra você",
         "ctx": "ela combina com o perfil médio das suas mais ouvidas",
         "cobertura": cobertura(catalogo, TETO_CONTA),
         "faixas": achadas.to_dict("records"),
         "media_match": round_js(achadas["match"].mean()) if len(achadas) else 0,
+        "perfil": perfil,
         "legenda": f"Nenhuma passa de {TETO_CONTA} de popularidade.",
         "sub_match": "afinidade com o seu perfil",
         "sub_cobertura": "do catálogo elegível para o seu perfil",

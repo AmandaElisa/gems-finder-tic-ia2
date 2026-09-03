@@ -12,8 +12,10 @@ import requests
 import streamlit as st
 
 from src import spotify
-from src.dados import ETAPAS_OAUTH, PERFIL_USUARIO, PERMISSOES, TOPS, carregar_catalogo
-from src.recomendacao import email_valido, montar_resultado_conta, nome_do_email
+from src.dados import ETAPAS_OAUTH, PERMISSOES, TOPS, carregar_catalogo
+from src.recomendacao import (descrever_perfil, email_valido,
+                             montar_resultado_conta, nome_do_email,
+                             perfil_do_usuario)
 from src.tema import ROSA
 from src.ui.componentes import barras_atributos_html, bloco, cartao, hero, passo
 from src.ui.estado import limpar_conta
@@ -28,8 +30,13 @@ def _conectar(email: str, quem: dict | None = None, token: str = "",
     st.session_state.email = email
     st.session_state.token = token
     st.session_state.sp_user = quem
-    st.session_state.tops = tops or list(TOPS)
-    st.session_state.res_conta = montar_resultado_conta(carregar_catalogo())
+    catalogo = carregar_catalogo()
+    # Perfil real: cruza as faixas mais ouvidas com o catálogo por track_id.
+    # Sem faixas reais (login encenado) cai no exemplo, que a tela marca.
+    perfil = perfil_do_usuario(catalogo, tops or [])
+    st.session_state.tops = tops or _tops_de_exemplo()
+    st.session_state.perfil_conta = perfil
+    st.session_state.res_conta = montar_resultado_conta(catalogo, perfil)
     st.session_state.pl_conta = None
     st.session_state.festa_conta = True
     st.rerun()
@@ -103,6 +110,33 @@ def _tela_login_simulada() -> None:
                    "conectar numa conta Spotify de verdade.")
 
 
+def _tops_de_exemplo() -> list[dict[str, str]]:
+    """As mais ouvidas do protótipo, no formato que a API devolve."""
+    return [{"id": "", "faixa": titulo, "artista": artista}
+            for titulo, artista in TOPS]
+
+
+def _aviso_do_perfil(perfil, conectado_de_verdade: bool) -> str:
+    """Diz de onde veio o perfil — e quando ele não é da pessoa, diz isso.
+
+    A tela mostrava as faixas reais de quem conectava e recomendava a partir
+    de um perfil fixo no código. Quem lesse acreditaria que o cálculo usou o
+    que estava na tela.
+    """
+    if perfil.e_real:
+        return (f"Perfil calculado das suas faixas: {perfil.encontradas} das "
+                f"suas {perfil.pedidas} mais ouvidas estão no nosso catálogo, "
+                "e os atributos de áudio delas viraram seu perfil. Os "
+                "atributos vêm do nosso dataset, nunca da API — o Spotify "
+                "descontinuou esse endpoint para apps novos.")
+    if conectado_de_verdade:
+        return (f"Nenhuma das suas {perfil.pedidas} mais ouvidas está no nosso "
+                "catálogo, então o perfil abaixo é um exemplo, não o seu — e "
+                "as joias saem dele.")
+    return ("Login encenado: o perfil abaixo é um exemplo, para ver o fluxo. "
+            "Conecte de verdade para usar o seu.")
+
+
 def _tela_conectada() -> None:
     """Perfil do testador, mais ouvidas, métricas e joias recomendadas."""
     if st.session_state.festa_conta:
@@ -113,9 +147,10 @@ def _tela_conectada() -> None:
     email = st.session_state.email
     quem = st.session_state.sp_user
     nome = (quem["nome"] if real and quem else nome_do_email(email)) or "Testador"
-    tops = st.session_state.tops or list(TOPS)
-    origem = ("direto da sua conta" if real
-              else "foi daqui que saiu seu perfil de áudio")
+    tops = st.session_state.tops or _tops_de_exemplo()
+    perfil = st.session_state.get("perfil_conta") or perfil_do_usuario(
+        carregar_catalogo(), [])
+    origem = "direto da sua conta" if real else "exemplo, para ver o fluxo"
 
     with cartao("perfil"):
         bloco(f'<div class="gf-who"><div class="gf-avatar">{nome[0]}</div>'
@@ -124,15 +159,13 @@ def _tela_conectada() -> None:
               f'<p class="gf-help" style="margin:20px 0 0"><b>Suas 5 mais ouvidas</b> — '
               f'{origem}.</p>'
               '<div class="gf-tops">'
-              + "".join(f'<span class="gf-top">{titulo} <s>· {artista}</s></span>'
-                        for titulo, artista in tops)
+              + "".join(f'<span class="gf-top">{f["faixa"]} <s>· {f["artista"]}</s></span>'
+                        for f in tops[:5])
               + '</div>'
-              '<p class="gf-help" style="margin:18px 0 8px">Perfil detectado: '
-              '<b>energia alta com humor baixo</b> — você curte música intensa e melancólica.</p>'
-              + barras_atributos_html(PERFIL_USUARIO))
-        if real:
-            st.caption("O perfil de áudio segue simulado: o Spotify descontinuou "
-                       "o endpoint de audio features pra apps novos.")
+              f'<p class="gf-help" style="margin:18px 0 8px">Perfil detectado: '
+              f'<b>{descrever_perfil(perfil.alvo)}</b>.</p>'
+              + barras_atributos_html(perfil.alvo))
+        st.caption(_aviso_do_perfil(perfil, real))
 
     mostrar_resultados(
         st.session_state.res_conta, "conta",
