@@ -16,6 +16,14 @@ Notas:
   cruzando as faixas mais ouvidas dele com o nosso catálogo, por `track_id`.
 * O catálogo traz o track_id real de cada faixa, então a playlist criada nasce
   preenchida.
+* A criação de playlist NÃO funciona hoje, e a causa é externa: apps em
+  Development Mode podem ler mas não escrever, desde a migração de 9/3/2026.
+  Ela continua implementada de propósito — é parte do produto desenhado, e o
+  grupo apresenta a limitação em vez de esconder a funcionalidade. Verificado
+  que não é escopo (o token traz `playlist-modify-private`) nem lista de
+  testadores (a conta está nela). Sair do modo exige Extended Quota, hoje só
+  para organização com 250 mil usuários ativos por mês. Detalhes no README,
+  seção "Limitações da API do Spotify".
 """
 
 from __future__ import annotations
@@ -29,7 +37,8 @@ import streamlit as st
 URL_AUTORIZACAO = "https://accounts.spotify.com/authorize"
 URL_TOKEN = "https://accounts.spotify.com/api/token"
 URL_API = "https://api.spotify.com/v1"
-ESCOPOS = "user-top-read playlist-modify-private"
+ESCOPO_PLAYLIST = "playlist-modify-private"
+ESCOPOS = f"user-top-read {ESCOPO_PLAYLIST}"
 TIMEOUT = 15
 
 
@@ -53,13 +62,24 @@ def url_login(cfg: dict[str, str]) -> str:
         "response_type": "code",
         "redirect_uri": cfg["redirect_uri"],
         "scope": ESCOPOS,
-        "show_dialog": "false",
+        # true, não false: com false o Spotify reaproveita em silêncio o
+        # consentimento antigo, e um token concedido antes de o app pedir
+        # permissão de playlist continua vindo sem ela para sempre. A tela de
+        # consentimento é o único jeito de a pessoa conceder o que falta.
+        "show_dialog": "true",
     }
     return f"{URL_AUTORIZACAO}?{urlencode(parametros)}"
 
 
-def trocar_code_por_token(cfg: dict[str, str], code: str) -> str:
-    """Troca o authorization code pelo access token."""
+def trocar_code_por_token(cfg: dict[str, str], code: str) -> tuple[str, str]:
+    """Troca o authorization code pelo access token, e devolve os escopos.
+
+    O Spotify concede os escopos que a pessoa autorizou, que não são
+    necessariamente os que pedimos: quem já autorizou o app uma vez recebe
+    token com o consentimento antigo, sem ver a tela de novo. Guardar o campo
+    `scope` da resposta é o que permite dizer "faltou tal permissão" em vez de
+    deixar a criação da playlist estourar 403 lá na frente.
+    """
     basic = base64.b64encode(
         f"{cfg['client_id']}:{cfg['client_secret']}".encode()).decode()
     resposta = requests.post(
@@ -70,7 +90,17 @@ def trocar_code_por_token(cfg: dict[str, str], code: str) -> str:
         timeout=TIMEOUT,
     )
     resposta.raise_for_status()
-    return resposta.json()["access_token"]
+    dados = resposta.json()
+    return dados["access_token"], str(dados.get("scope", ""))
+
+
+def falta_escopo_de_playlist(concedidos: str) -> bool:
+    """True quando o token não pode criar playlist.
+
+    Um token sem `playlist-modify-private` lê as faixas mais ouvidas sem
+    reclamar e só falha no POST da playlist, com um 403 que não explica nada.
+    """
+    return ESCOPO_PLAYLIST not in (concedidos or "").split()
 
 
 def _get(token: str, rota: str, **parametros) -> dict:
@@ -118,6 +148,32 @@ def top_artistas(token: str, limite: int = 50) -> list[dict[str, object]]:
             for item in dados.get("items", [])]
 
 
+class ErroDoSpotify(RuntimeError):
+    """Erro da Web API com o motivo que o Spotify mandou no corpo.
+
+    `raise_for_status()` sozinho descarta o corpo da resposta, que é
+    justamente onde o Spotify explica a recusa — um 403 pode ser escopo
+    faltando, app em modo de desenvolvimento, conta fora da lista de
+    testadores ou id de usuário trocado, e a mensagem distingue os casos.
+    Sem ela sobra adivinhação.
+    """
+
+    def __init__(self, etapa: str, resposta: requests.Response) -> None:
+        self.etapa = etapa
+        self.status = resposta.status_code
+        try:
+            corpo = resposta.json().get("error", {})
+            self.motivo = str(corpo.get("message") or corpo) or resposta.text
+        except ValueError:
+            self.motivo = resposta.text[:300]
+        super().__init__(f"{etapa}: {self.status} — {self.motivo}")
+
+
+def _exigir_ok(etapa: str, resposta: requests.Response) -> None:
+    if not resposta.ok:
+        raise ErroDoSpotify(etapa, resposta)
+
+
 def criar_playlist(token: str, user_id: str, nome: str,
                    faixas: list[dict]) -> str:
     """Cria uma playlist privada com as faixas dentro e devolve a URL dela.
@@ -137,7 +193,7 @@ def criar_playlist(token: str, user_id: str, nome: str,
         json={"name": nome, "public": False, "description": descricao},
         timeout=TIMEOUT,
     )
-    resposta.raise_for_status()
+    _exigir_ok("criar a playlist", resposta)
     playlist = resposta.json()
 
     uris = [f"spotify:track:{faixa['track_id']}"
@@ -150,6 +206,6 @@ def criar_playlist(token: str, user_id: str, nome: str,
             json={"uris": uris},
             timeout=TIMEOUT,
         )
-        adicao.raise_for_status()
+        _exigir_ok("adicionar as faixas", adicao)
 
     return playlist["external_urls"]["spotify"]
