@@ -32,10 +32,10 @@
 O **Gems Finder** é um produto de dados desenvolvido para análises avançadas de engenharia e machine learning. O sistema resolve o viés de popularidade das plataformas de streaming tradicionais, cruzando perfis de áudio de grandes sucessos (*mainstream*) com faixas de baixa popularidade para entregar recomendações de descoberta justa e curadoria independente.
 
 ## ✨ Principais Funcionalidades
-* **🎛️ Explorador por Vibes:** Segmentação do catálogo em quadrantes de humor (Foco, Treino, Chill, Melancolia) baseados em atributos técnicos (`valence`, `energy`, `acousticness`, `speechiness`).
-* **📊 Score de Potencial Oculto:** Métrica proprietária que ranqueia faixas subestimadas de acordo com a similaridade de DNA sonoro com hits consolidados.
+* **🎛️ Explorador por Vibes:** Segmentação do catálogo em cinco *moods* — Foco, Aconchego, Treino, Heavy e Gingado — descobertos por **K-Means** sobre `danceability`, `energy`, `valence`, `acousticness` e `instrumentalness`. O K foi validado de 3 a 8 por silhueta, Davies-Bouldin, Calinski-Harabasz e cotovelo.
+* **📊 Garimpo por semente:** Cada faixa ou artista de referência procura vizinhos no próprio território sonoro e de gênero, em vez de tudo virar uma média só — a média de gostos distintos cai num ponto que não é nenhum deles.
 * **🎧 Modo Híbrido / Conexão Spotify:** Arquitetura flexível que permite tanto a exploração pública por *vibes* quanto simulações de autenticação via API para perfis de teste.
-* **📈 Dashboards Analíticos:** Métricas de precisão, cobertura de catálogo e identificação de artistas independentes.
+* **📈 Métricas honestas:** Afinidade e cobertura do catálogo elegível, ambas calculadas. Não há métrica de precisão exibida: ela voltará quando existir protocolo de avaliação escrito.
 
 ## 🗂️ Estrutura do Repositório
 A organização dos arquivos e pastas do projeto segue o padrão de engenharia de dados:
@@ -81,7 +81,9 @@ gems-finder/
 pip install -r requirements.txt
 streamlit run app.py
 ```
-O app abre em `http://localhost:8501`. Os dados são simulados dentro do próprio código (sem CSV externo nem credenciais) e a métrica *Precisão @8* é placeholder até a avaliação real do modelo.
+O app abre em `http://localhost:8501` com o catálogo real de **89.740 faixas**,
+carregado de `data/processed/`. O login do Spotify é opcional: sem credenciais
+em `.streamlit/secrets.toml` o app funciona inteiro, só sem perfil pessoal.
 
 ## 🛠️ Arquitetura e Tecnologias
 
