@@ -106,6 +106,18 @@ def top_faixas(token: str, limite: int = 50) -> list[dict[str, str]]:
             for item in dados.get("items", [])]
 
 
+def top_artistas(token: str, limite: int = 50) -> list[dict[str, object]]:
+    """Os artistas mais ouvidos do usuário, com os gêneros que o Spotify atribui.
+
+    Serve de rede quando o cruzamento por faixa acha pouca coisa: os gêneros
+    do artista permitem aproximar o perfil pelo centroide desses gêneros no
+    nosso catálogo. É menos preciso que a média das faixas, e a tela diz isso.
+    """
+    dados = _get(token, "/me/top/artists", limit=limite, time_range="medium_term")
+    return [{"nome": item["name"], "generos": list(item.get("genres", []))}
+            for item in dados.get("items", [])]
+
+
 def criar_playlist(token: str, user_id: str, nome: str,
                    faixas: list[dict]) -> str:
     """Cria uma playlist privada com as faixas dentro e devolve a URL dela.

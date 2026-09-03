@@ -24,7 +24,8 @@ from src.ui.resultados import mostrar_resultados
 
 
 def _conectar(email: str, quem: dict | None = None, token: str = "",
-              tops: list[tuple[str, str]] | None = None) -> None:
+              tops: list[dict[str, str]] | None = None,
+              generos: list[str] | None = None) -> None:
     """Guarda a sessão conectada (real ou simulada) e recarrega a página."""
     st.session_state.conectado = True
     st.session_state.email = email
@@ -33,7 +34,7 @@ def _conectar(email: str, quem: dict | None = None, token: str = "",
     catalogo = carregar_catalogo()
     # Perfil real: cruza as faixas mais ouvidas com o catálogo por track_id.
     # Sem faixas reais (login encenado) cai no exemplo, que a tela marca.
-    perfil = perfil_do_usuario(catalogo, tops or [])
+    perfil = perfil_do_usuario(catalogo, tops or [], generos)
     st.session_state.tops = tops or _tops_de_exemplo()
     st.session_state.perfil_conta = perfil
     st.session_state.res_conta = montar_resultado_conta(catalogo, perfil)
@@ -65,10 +66,12 @@ def _processar_callback(cfg: dict[str, str]) -> None:
             token = spotify.trocar_code_por_token(cfg, code)
             quem = spotify.perfil(token)
             tops = spotify.top_faixas(token)
+            artistas = spotify.top_artistas(token)
     except requests.RequestException as erro:
         st.error(f"Não consegui conectar no Spotify: {erro}", icon="🚫")
         return
-    _conectar(quem["email"] or quem["nome"], quem, token, tops)
+    _conectar(quem["email"] or quem["nome"], quem, token, tops,
+              [g for a in artistas for g in a["generos"]])
 
 
 def _tela_login_real(cfg: dict[str, str]) -> None:
@@ -123,12 +126,20 @@ def _aviso_do_perfil(perfil, conectado_de_verdade: bool) -> str:
     de um perfil fixo no código. Quem lesse acreditaria que o cálculo usou o
     que estava na tela.
     """
-    if perfil.e_real:
+    if perfil.origem == "faixas":
         return (f"Perfil calculado das suas faixas: {perfil.encontradas} das "
                 f"suas {perfil.pedidas} mais ouvidas estão no nosso catálogo, "
                 "e os atributos de áudio delas viraram seu perfil. Os "
                 "atributos vêm do nosso dataset, nunca da API — o Spotify "
                 "descontinuou esse endpoint para apps novos.")
+    if perfil.origem == "generos":
+        quantos = perfil.encontradas
+        lista = ", ".join(perfil.generos_usados[:4])
+        return (f"Só {quantos} das suas {perfil.pedidas} mais ouvidas estão no "
+                "nosso catálogo — pouco para uma média confiável. Então o "
+                f"perfil veio dos gêneros que você mais ouve ({lista}), pela "
+                "média das faixas nossas nesses gêneros. É uma aproximação, "
+                "mais grossa que a média das suas faixas.")
     if conectado_de_verdade:
         return (f"Nenhuma das suas {perfil.pedidas} mais ouvidas está no nosso "
                 "catálogo, então o perfil abaixo é um exemplo, não o seu — e "

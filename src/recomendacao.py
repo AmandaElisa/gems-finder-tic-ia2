@@ -318,17 +318,25 @@ def montar_resultado(catalogo: pd.DataFrame, artistas: pd.DataFrame,
     }
 
 
+# Abaixo disto a média das faixas encontradas é ruído, não perfil: uma ou duas
+# faixas descrevem um momento, não um gosto.
+MINIMO_DE_FAIXAS_CRUZADAS = 5
+
+
 class PerfilDoUsuario(NamedTuple):
-    """O perfil de áudio de quem está conectado, e quanto dele é medido."""
+    """O perfil de áudio de quem está conectado, e de onde ele veio."""
 
     alvo: dict[str, float]
     encontradas: int      # faixas do usuário que existem no nosso catálogo
     pedidas: int          # faixas que o Spotify devolveu
     e_real: bool          # False quando caiu no perfil de exemplo
+    origem: str = "exemplo"   # "faixas" | "generos" | "exemplo"
+    generos_usados: tuple[str, ...] = ()
 
 
 def perfil_do_usuario(catalogo: pd.DataFrame,
-                      faixas_do_usuario: Sequence[Mapping[str, Any]]
+                      faixas_do_usuario: Sequence[Mapping[str, Any]],
+                      generos_do_usuario: Sequence[str] | None = None
                       ) -> PerfilDoUsuario:
     """Monta o perfil de áudio cruzando as faixas do usuário com o catálogo.
 
@@ -348,9 +356,45 @@ def perfil_do_usuario(catalogo: pd.DataFrame,
     else:
         encontradas = catalogo.iloc[0:0]
 
-    if len(encontradas) == 0:
-        return PerfilDoUsuario(dict(PERFIL_USUARIO), 0, pedidas, False)
-    return PerfilDoUsuario(media(encontradas), len(encontradas), pedidas, True)
+    # 1. Caminho bom: média das faixas que a pessoa ouve e nós temos.
+    if len(encontradas) >= MINIMO_DE_FAIXAS_CRUZADAS:
+        return PerfilDoUsuario(media(encontradas), len(encontradas), pedidas,
+                               True, "faixas")
+
+    # 2. Rede: os gêneros dos artistas favoritos, aproximados pelo centroide
+    #    deles no catálogo. Menos preciso, e a tela diz que foi por aqui.
+    alvo_generos, usados = _centroide_dos_generos(catalogo, generos_do_usuario)
+    if alvo_generos is not None:
+        return PerfilDoUsuario(alvo_generos, len(encontradas), pedidas,
+                               True, "generos", usados)
+
+    # 3. Sem nada em que se apoiar: exemplo, dito como exemplo.
+    return PerfilDoUsuario(dict(PERFIL_USUARIO), len(encontradas), pedidas,
+                           False, "exemplo")
+
+
+def _centroide_dos_generos(catalogo: pd.DataFrame,
+                           generos_do_usuario: Sequence[str] | None
+                           ) -> tuple[dict[str, float] | None, tuple[str, ...]]:
+    """Centroide das faixas do catálogo nos gêneros que o usuário mais ouve.
+
+    O Spotify devolve gêneros por artista com vocabulário próprio ("brazilian
+    rock", "mpb"), que nem sempre existe no nosso `track_genre`. Ficamos só com
+    os que existem — se nenhum existir, não há aproximação a fazer.
+    """
+    if not generos_do_usuario:
+        return None, ()
+    coluna = "generos" if "generos" in catalogo.columns else None
+    if coluna is None:
+        return None, ()
+    procurados = {g.lower() for g in generos_do_usuario}
+    pertence = catalogo[coluna].apply(
+        lambda lista: any(str(g).lower() in procurados for g in lista))
+    faixas = catalogo[pertence]
+    if faixas.empty:
+        return None, ()
+    presentes = {str(g).lower() for lista in faixas[coluna] for g in lista}
+    return media(faixas), tuple(sorted(procurados & presentes))
 
 
 def descrever_perfil(alvo: Mapping[str, float]) -> str:
