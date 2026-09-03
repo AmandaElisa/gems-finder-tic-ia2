@@ -1,4 +1,12 @@
+# Dependências de runtime — é este arquivo que o Streamlit Community Cloud
+# instala no deploy. Ver requirements-dev.txt para testes e notebooks.
 streamlit>=1.39
 pandas>=2.0
 numpy>=1.26
 requests>=2.31
+
+# O app carrega o modelo já treinado de data/processed/ e nunca recalcula:
+# lê parâmetros de modelo.json (dado puro, sem pickle) e as tabelas em parquet.
+# Por isso NÃO precisa de scikit-learn nem joblib aqui — só do leitor de
+# parquet. O treino vive no notebook, com requirements-dev.txt.
+pyarrow>=14.0

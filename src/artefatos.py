@@ -1,15 +1,24 @@
 """Carrega os artefatos que o notebook de clusterização exporta.
 
-O app nunca treina nada: ele lê `data/processed/` e usa o que está lá. Em
-particular, o `StandardScaler` exportado é reaplicado como está — criar um
-scaler novo compararia vetores em escalas diferentes e devolveria vizinhos
-errados sem avisar.
+O app nunca treina nada: ele lê `data/processed/` e usa o que está lá. Quando
+for preciso transformar as faixas do usuário, use a média e a escala que vêm
+em `modelo.json` — ajustar um scaler novo compararia vetores em escalas
+diferentes e devolveria vizinhos errados sem avisar.
 
 Artefatos esperados (produzidos por `notebook/Grupo_9_Sound_Hunters.ipynb`):
 
     catalogo.parquet   uma linha por track_id, com mood e status do artista
     artistas.parquet   um artista por linha, com n_faixas, pop_media, pop_max
-    modelo.joblib      scaler, kmeans, features do vetor de mood e limiares
+    modelo.json        features do vetor de mood, famílias de gênero, limiares,
+                       e os PARÂMETROS do scaler e dos centroides
+
+Lemos `modelo.json`, não `modelo.joblib`. O joblib guarda objetos do
+scikit-learn, e carregá-lo arrastaria a biblioteca inteira para produção só
+para desempacotar coisas que o app não usa — ele lê parâmetros, nunca chama
+`fit` nem `predict`. Além disso, pickle de sklearn é frágil entre versões: uma
+atualização da lib no servidor poderia quebrar o carregamento de um artefato
+antigo. O joblib continua sendo exportado pelo notebook, para quem retomar o
+treino ou montar a API.
 
 Se algum faltar, o carregamento falha em voz alta. Cair de volta nos dados
 simulados em silêncio mostraria número inventado como se fosse medido, o que
@@ -18,12 +27,12 @@ o princípio 2 da constituição proíbe.
 
 from __future__ import annotations
 
+import json
 import unicodedata
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-import joblib
 import pandas as pd
 
 from src.tema import AZUL, LIMA, PERI, ROSA
@@ -124,8 +133,23 @@ def _exigir(caminho: Path) -> Path:
 
 @lru_cache(maxsize=1)
 def modelo() -> dict[str, Any]:
-    """O scaler, o KMeans e os limiares, como o notebook os exportou."""
-    return joblib.load(_exigir(pasta() / "modelo.joblib"))
+    """Os parâmetros do modelo, como o notebook os exportou."""
+    caminho = _exigir(pasta() / "modelo.json")
+    return json.loads(caminho.read_text(encoding="utf-8"))
+
+
+def versao() -> str:
+    """Identificador do modelo carregado — hash do que o define.
+
+    Serve para dizer de qual modelo saiu um resultado, e para perceber que o
+    app está lendo um artefato antigo. Muda quando o modelo muda, e só então.
+    """
+    return str(modelo().get("versao", "desconhecida"))
+
+
+def treinado_em() -> str:
+    """Quando o modelo carregado foi treinado, em ISO 8601 UTC."""
+    return str(modelo().get("treinado_em", "desconhecido"))
 
 
 @lru_cache(maxsize=1)

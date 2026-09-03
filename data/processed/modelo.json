@@ -1,0 +1,217 @@
+{
+ "versao": "22ba8fbfda50",
+ "treinado_em": "2026-09-03T18:51:23+00:00",
+ "faixas_no_treino": 88945,
+ "familias_de_genero": {
+  "Rock": [
+   "rock",
+   "hard-rock",
+   "rock-n-roll",
+   "rockabilly",
+   "punk",
+   "punk-rock",
+   "grunge",
+   "psych-rock",
+   "power-pop",
+   "goth",
+   "ska",
+   "j-rock",
+   "german"
+  ],
+  "Metal": [
+   "metal",
+   "heavy-metal",
+   "black-metal",
+   "death-metal",
+   "metalcore",
+   "grindcore",
+   "hardcore",
+   "industrial",
+   "hardstyle"
+  ],
+  "Indie": [
+   "indie",
+   "indie-pop",
+   "alt-rock",
+   "alternative",
+   "garage",
+   "emo",
+   "british",
+   "french",
+   "chill",
+   "sad"
+  ],
+  "Pop": [
+   "pop",
+   "pop-film",
+   "happy",
+   "k-pop",
+   "j-pop",
+   "j-idol",
+   "cantopop",
+   "mandopop",
+   "anime",
+   "disney",
+   "show-tunes",
+   "swedish",
+   "world-music"
+  ],
+  "Eletrônica": [
+   "electronic",
+   "electro",
+   "edm",
+   "house",
+   "deep-house",
+   "progressive-house",
+   "chicago-house",
+   "techno",
+   "detroit-techno",
+   "minimal-techno",
+   "trance",
+   "drum-and-bass",
+   "breakbeat",
+   "dubstep",
+   "dub",
+   "idm",
+   "club",
+   "dance",
+   "j-dance",
+   "disco",
+   "synth-pop",
+   "party",
+   "trip-hop"
+  ],
+  "Hip-hop e soul": [
+   "hip-hop",
+   "r-n-b",
+   "soul",
+   "funk",
+   "groove",
+   "gospel",
+   "afrobeat"
+  ],
+  "Latina": [
+   "latin",
+   "latino",
+   "reggaeton",
+   "salsa",
+   "spanish",
+   "tango",
+   "reggae",
+   "dancehall"
+  ],
+  "MPB, samba, pagode e bossa nova": [
+   "mpb",
+   "brazil",
+   "samba",
+   "pagode"
+  ],
+  "Forró": [
+   "forro"
+  ],
+  "Sertanejo": [
+   "sertanejo"
+  ],
+  "Folk, jazz e country": [
+   "jazz",
+   "blues",
+   "country",
+   "bluegrass",
+   "honky-tonk",
+   "acoustic",
+   "folk",
+   "singer-songwriter",
+   "songwriter",
+   "romance"
+  ],
+  "Clássica e instrumental": [
+   "classical",
+   "opera",
+   "piano",
+   "guitar",
+   "new-age",
+   "ambient",
+   "study",
+   "sleep"
+  ],
+  "Índia e Oriente": [
+   "indian",
+   "iranian",
+   "turkish",
+   "malay"
+  ],
+  "Infantil e humor": [
+   "children",
+   "kids",
+   "comedy"
+  ]
+ },
+ "features_mood": [
+  "danceability",
+  "energy",
+  "valence",
+  "acousticness",
+  "instrumentalness"
+ ],
+ "nomes_mood": {
+  "4": "Foco",
+  "2": "Treino",
+  "0": "Gingado",
+  "3": "Heavy",
+  "1": "Aconchego"
+ },
+ "piso_popularidade": 2,
+ "teto_faixa_obscura": 16.0,
+ "teto_artista_consolidado": 50,
+ "scaler_media": [
+  0.5621643791106863,
+  0.6337577486828939,
+  0.46996834707965596,
+  0.32408197416819384,
+  0.17496528442891676
+ ],
+ "scaler_escala": [
+  0.17730513509276616,
+  0.2570221888208569,
+  0.26335580350985444,
+  0.3367148836826401,
+  0.32487448261176155
+ ],
+ "centroides": {
+  "Gingado": [
+   0.7571848165318861,
+   0.33783800800513186,
+   0.9510576013789257,
+   -0.2589751639100727,
+   -0.4716815076319111
+  ],
+  "Aconchego": [
+   -0.2734935118141724,
+   -1.020341524408609,
+   -0.31503778885935685,
+   1.1749847677981309,
+   -0.4729356849591607
+  ],
+  "Treino": [
+   0.05480491101350144,
+   0.5122016038129872,
+   -0.5075177818411086,
+   -0.7034284516380357,
+   1.8921528812317416
+  ],
+  "Heavy": [
+   -0.4735987187911385,
+   0.6366389460373548,
+   -0.47023851206507794,
+   -0.7396489169744337,
+   -0.4433302935823252
+  ],
+  "Foco": [
+   -1.0984651780304102,
+   -1.703081648318861,
+   -1.0086801624788404,
+   1.572661330784554,
+   2.061178312450674
+  ]
+ }
+}
