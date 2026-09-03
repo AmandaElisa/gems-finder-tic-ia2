@@ -45,8 +45,8 @@ gems-finder/
 ├── data/
 │   ├── raw/                  # Dataset original
 │   └── processed/            # Dados tratados
-├── notebooks/
-│   └── gems_finder_eda.ipynb # Notebook principal de limpeza dos dados, exploração, métricas e modelo
+├── notebook/
+│   └── Grupo_9_Sound_Hunters.ipynb # Limpeza, EDA, seleção de features, clusters e exportação dos artefatos
 ├── CLAUDE.md                 # Orquestração: contexto, ciclo de trabalho e convenções
 ├── docs/
 │   ├── gems-finder-prototipo.html # Protótipo HTML aprovado (especificação visual e funcional)

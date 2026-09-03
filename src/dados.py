@@ -68,7 +68,12 @@ PERFIL_USUARIO: dict[str, float] = {
     "instrumentalidade": .29,
     "acustica": .44,
 }
-TETO_CONTA = 20
+# Teto de popularidade da aba Minha conta, que não tem slider. Era 20, herdado
+# do protótipo, e prendia o garimpo na faixa mais rasa do catálogo: as joias
+# saíam quase todas entre 3 e 20 de popularidade. 50 é o mesmo máximo que o
+# slider do Descobrir oferece, e é onde as quatro famílias sem cauda obscura
+# (Gospel 37, Forró 36, Sertanejo 43) passam a caber.
+TETO_CONTA = 50
 
 ETAPAS_OAUTH: tuple[str, ...] = (
     "Autorizando acesso via OAuth",

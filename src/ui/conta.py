@@ -25,11 +25,15 @@ from src.ui.resultados import mostrar_resultados
 
 def _conectar(email: str, quem: dict | None = None, token: str = "",
               tops: list[dict[str, str]] | None = None,
-              generos: list[str] | None = None) -> None:
+              generos: list[str] | None = None,
+              escopos: str = "") -> None:
     """Guarda a sessão conectada (real ou simulada) e recarrega a página."""
     st.session_state.conectado = True
     st.session_state.email = email
     st.session_state.token = token
+    # Os escopos CONCEDIDOS, não os pedidos: é com eles que a seção de
+    # playlist sabe, antes de tentar, se o token pode criar uma.
+    st.session_state.escopos = escopos
     st.session_state.sp_user = quem
     catalogo = carregar_catalogo()
     # Perfil real: cruza as faixas mais ouvidas com o catálogo por track_id.
@@ -63,7 +67,7 @@ def _processar_callback(cfg: dict[str, str]) -> None:
     st.query_params.clear()
     try:
         with st.spinner("Conectando na sua conta…"):
-            token = spotify.trocar_code_por_token(cfg, code)
+            token, escopos = spotify.trocar_code_por_token(cfg, code)
             quem = spotify.perfil(token)
             tops = spotify.top_faixas(token)
             artistas = spotify.top_artistas(token)
@@ -71,7 +75,7 @@ def _processar_callback(cfg: dict[str, str]) -> None:
         st.error(f"Não consegui conectar no Spotify: {erro}", icon="🚫")
         return
     _conectar(quem["email"] or quem["nome"], quem, token, tops,
-              [g for a in artistas for g in a["generos"]])
+              [g for a in artistas for g in a["generos"]], escopos)
 
 
 def _tela_login_real(cfg: dict[str, str]) -> None:

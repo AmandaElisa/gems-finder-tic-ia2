@@ -358,7 +358,13 @@ def garimpar_por_sementes(base: pd.DataFrame, sementes: Sequence[Semente],
         _completar(base, sementes, escolhidas, vistas, limite)
     if not escolhidas:
         return _vazio_com_semente(base)
-    return pd.DataFrame(escolhidas).reset_index(drop=True)
+    # O rodízio decide QUAIS oito, não em que ordem elas aparecem. Deixar a
+    # ordem do rodízio vazar para a tela intercala 68%, 84%, 77%, 98% e parece
+    # aleatório para quem lê. A seleção continua cobrindo todas as sementes; a
+    # exibição é do melhor para o pior.
+    return (pd.DataFrame(escolhidas)
+            .sort_values("match", ascending=False, kind="stable")
+            .reset_index(drop=True))
 
 
 def teto_minimo_util(base: pd.DataFrame) -> int | None:
@@ -539,8 +545,14 @@ def sementes_de_faixas(faixas: pd.DataFrame) -> tuple[Semente, ...]:
     saida: list[Semente] = []
     for _, linha in faixas.iterrows():
         generos = tuple(linha["generos"]) if "generos" in faixas.columns else ()
+        # Nome e artista: só o nome obriga a pessoa a adivinhar de qual faixa
+        # dela veio a recomendação — "Manchete dos Jornais" não diz Calcinha
+        # Preta para quem tem cinquenta faixas mais ouvidas.
+        artista = (str(linha["artista"]).split(";")[0].strip()
+                   if "artista" in faixas.columns else "")
+        rotulo = f"{linha['faixa']} ({artista})" if artista else str(linha["faixa"])
         saida.append(Semente({a: float(linha[a]) for a in ATRIBUTOS},
-                             str(linha["faixa"]), generos))
+                             rotulo, generos))
     return tuple(saida)
 
 

@@ -29,7 +29,8 @@ import streamlit as st
 URL_AUTORIZACAO = "https://accounts.spotify.com/authorize"
 URL_TOKEN = "https://accounts.spotify.com/api/token"
 URL_API = "https://api.spotify.com/v1"
-ESCOPOS = "user-top-read playlist-modify-private"
+ESCOPO_PLAYLIST = "playlist-modify-private"
+ESCOPOS = f"user-top-read {ESCOPO_PLAYLIST}"
 TIMEOUT = 15
 
 
@@ -53,13 +54,24 @@ def url_login(cfg: dict[str, str]) -> str:
         "response_type": "code",
         "redirect_uri": cfg["redirect_uri"],
         "scope": ESCOPOS,
-        "show_dialog": "false",
+        # true, não false: com false o Spotify reaproveita em silêncio o
+        # consentimento antigo, e um token concedido antes de o app pedir
+        # permissão de playlist continua vindo sem ela para sempre. A tela de
+        # consentimento é o único jeito de a pessoa conceder o que falta.
+        "show_dialog": "true",
     }
     return f"{URL_AUTORIZACAO}?{urlencode(parametros)}"
 
 
-def trocar_code_por_token(cfg: dict[str, str], code: str) -> str:
-    """Troca o authorization code pelo access token."""
+def trocar_code_por_token(cfg: dict[str, str], code: str) -> tuple[str, str]:
+    """Troca o authorization code pelo access token, e devolve os escopos.
+
+    O Spotify concede os escopos que a pessoa autorizou, que não são
+    necessariamente os que pedimos: quem já autorizou o app uma vez recebe
+    token com o consentimento antigo, sem ver a tela de novo. Guardar o campo
+    `scope` da resposta é o que permite dizer "faltou tal permissão" em vez de
+    deixar a criação da playlist estourar 403 lá na frente.
+    """
     basic = base64.b64encode(
         f"{cfg['client_id']}:{cfg['client_secret']}".encode()).decode()
     resposta = requests.post(
@@ -70,7 +82,17 @@ def trocar_code_por_token(cfg: dict[str, str], code: str) -> str:
         timeout=TIMEOUT,
     )
     resposta.raise_for_status()
-    return resposta.json()["access_token"]
+    dados = resposta.json()
+    return dados["access_token"], str(dados.get("scope", ""))
+
+
+def falta_escopo_de_playlist(concedidos: str) -> bool:
+    """True quando o token não pode criar playlist.
+
+    Um token sem `playlist-modify-private` lê as faixas mais ouvidas sem
+    reclamar e só falha no POST da playlist, com um 403 que não explica nada.
+    """
+    return ESCOPO_PLAYLIST not in (concedidos or "").split()
 
 
 def _get(token: str, rota: str, **parametros) -> dict:

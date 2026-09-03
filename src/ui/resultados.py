@@ -61,8 +61,20 @@ def _gerar_playlist_real(resultado: Mapping[str, Any], chave_url: str) -> None:
             url = spotify.criar_playlist(
                 st.session_state.token, st.session_state.sp_user["id"],
                 f"Gems Finder · {resultado['titulo']}", resultado["faixas"])
+    except requests.HTTPError as erro:
+        # 403 aqui é quase sempre permissão, não erro de rede: o token lê as
+        # mais ouvidas e mesmo assim não pode escrever playlist.
+        if erro.response is not None and erro.response.status_code == 403:
+            st.error(
+                "O Spotify recusou a criação da playlist (403). Isso costuma "
+                "ser falta da permissão de playlist na sua autorização — "
+                "desconecte e conecte de novo pra autorizar na tela do "
+                "Spotify.", icon="🔐")
+        else:
+            st.error(f"O Spotify não deixou criar a playlist: {erro}", icon="🚫")
+        return
     except requests.RequestException as erro:
-        st.error(f"O Spotify não deixou criar a playlist: {erro}", icon="🚫")
+        st.error(f"Não consegui falar com o Spotify: {erro}", icon="🚫")
         return
     st.session_state[chave_url] = url
     st.success(f"Playlist criada na sua conta com as {len(resultado['faixas'])} joias "
@@ -94,7 +106,16 @@ def secao_playlist(resultado: Mapping[str, Any], espaco: str) -> None:
               "Criamos uma playlist privada na sua conta com as 8 faixas acima.")
         chave_url = f"pl_{espaco}"
         conectado_real = bool(st.session_state.get("token")) and st.session_state.get("sp_user")
-        if st.button("Gerar playlist", type="primary", key=f"btn_pl_{espaco}"):
+        sem_permissao = conectado_real and spotify.falta_escopo_de_playlist(
+            st.session_state.get("escopos", ""))
+        if sem_permissao:
+            st.warning(
+                "Sua conexão foi autorizada só para ler suas mais ouvidas — "
+                "falta a permissão de criar playlist. Desconecte e conecte de "
+                "novo: agora a tela do Spotify aparece pra você autorizar.",
+                icon="🔐")
+        if st.button("Gerar playlist", type="primary", key=f"btn_pl_{espaco}",
+                     disabled=bool(sem_permissao)):
             if conectado_real:
                 _gerar_playlist_real(resultado, chave_url)
             else:
