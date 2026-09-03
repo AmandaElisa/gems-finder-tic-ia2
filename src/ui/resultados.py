@@ -65,6 +65,7 @@ def _gerar_playlist_real(resultado: Mapping[str, Any], chave_url: str) -> None:
         st.error(f"O Spotify recusou **{erro.etapa}** ({erro.status}): "
                  f"{erro.motivo}", icon="🚫")
         _diagnostico(erro)
+        _lista_para_copiar(resultado)
         return
     except requests.RequestException as erro:
         st.error(f"Não consegui falar com o Spotify: {erro}", icon="🚫")
@@ -76,26 +77,48 @@ def _gerar_playlist_real(resultado: Mapping[str, Any], chave_url: str) -> None:
 
 
 def _diagnostico(erro: spotify.ErroDoSpotify) -> None:
-    """Mostra o estado real da conexão quando o Spotify recusa.
+    """Explica o 403 e mostra o estado real da conexão.
 
-    Sem isto o 403 vira adivinhação: dá para confundir escopo faltando com
-    app em modo de desenvolvimento ou conta fora da lista de testadores. Estes
-    três valores separam os casos, e são os que a pessoa precisa copiar para
-    conferir no dashboard do app.
+    O 403 daqui é limite de plataforma, não erro do app: desde a migração de
+    março de 2026 o Spotify bloqueia operações de **escrita** para apps em
+    Development Mode. Leitura continua funcionando — é por isso que as faixas
+    mais ouvidas chegam e a playlist não nasce. Sair desse modo exige Extended
+    Quota, hoje restrito a empresa registrada com 250 mil usuários ativos por
+    mês, o que este projeto não tem como atender.
+
+    Foi verificado que não é escopo (o token traz `playlist-modify-private`)
+    nem lista de testadores (a conta está nela).
     """
     if erro.status not in (401, 403):
         return
     concedidos = st.session_state.get("escopos", "") or "(nenhum registrado)"
     usuario = (st.session_state.get("sp_user") or {}).get("id", "(sem id)")
-    with st.expander("O que a conexão está usando"):
+    with st.expander("Por que isso acontece"):
         st.markdown(
-            f"- **Escopos concedidos pelo Spotify:** `{concedidos}`\n"
-            f"- **Escopos que o app pede:** `{spotify.ESCOPOS}`\n"
-            f"- **Usuário da requisição:** `{usuario}`\n\n"
-            "Se a permissão de playlist **aparece** na primeira linha, não é "
-            "escopo: é o app em modo de desenvolvimento no dashboard do "
-            "Spotify, e a conta precisa estar na lista de testadores em "
-            "*Settings › User Management*.")
+            "Apps do Spotify em **modo de desenvolvimento** só podem **ler**. "
+            "Criar playlist é escrita, e a plataforma bloqueia desde março de "
+            "2026. Liberar exige *Extended Quota*, que hoje pede empresa "
+            "registrada com 250 mil usuários ativos por mês.\n\n"
+            "Já verificado, e **não** é a causa:\n"
+            f"- Escopos concedidos: `{concedidos}` — a permissão de playlist está lá\n"
+            f"- Escopos pedidos: `{spotify.ESCOPOS}`\n"
+            f"- Usuário: `{usuario}`, presente na lista de testadores do app\n\n"
+            "As oito joias continuam abaixo, com link direto pra cada uma.")
+
+
+def _lista_para_copiar(resultado: Mapping[str, Any]) -> None:
+    """As joias em links, que é o que sobra quando a escrita está bloqueada.
+
+    Link de faixa não precisa de login nem de permissão — é leitura pura —
+    então esta é a única forma de "levar com você" que a plataforma permite.
+    """
+    faixas = resultado.get("faixas") or []
+    urls = [f"https://open.spotify.com/track/{f['track_id']}"
+            for f in faixas if f.get("track_id")]
+    if not urls:
+        return
+    st.caption("Copie e cole no Spotify pra montar a playlist na mão:")
+    st.code("\n".join(urls), language=None)
 
 
 def _pedir_conexao(resultado: Mapping[str, Any]) -> None:
