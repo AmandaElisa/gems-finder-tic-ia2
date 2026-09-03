@@ -59,13 +59,65 @@ def _do_genero(catalogo: pd.DataFrame, generos: Sequence[str]) -> pd.DataFrame:
     coluna `genero` é só o primeiro deles em ordem alfabética — estável para
     exibir, mas errada para filtrar: escolher "rock" perderia uma faixa cujos
     gêneros são ["alt-rock", "rock"]. Sem a lista, cai na coluna simples.
+
+    Etiqueta de playlist não decide família. `chill`, `sad`, `piano` e as
+    outras de `NAO_SAO_GENEROS` atravessam o catálogo inteiro, então bastava
+    uma delas para arrastar música de qualquer lugar para dentro de uma
+    família. Medido: 19% do universo "Indie" entrava só por `chill` ou `sad`,
+    e metade de "Clássica e instrumental" só por `piano`, `guitar`, `sleep`
+    ou `study` — foi assim que uma busca por Indie devolveu faixa `indian`
+    marcada também como `chill`.
+
+    Quando a faixa tem gênero de verdade, são eles que decidem. A faixa que
+    SÓ tem etiqueta continua valendo pela etiqueta, senão ela sumiria da
+    busca inteira.
     """
     procurados = familias.expandir(generos)
     if "generos" in catalogo.columns:
-        pertence = catalogo["generos"].apply(
-            lambda lista: bool(procurados & set(lista)))
-        return catalogo[pertence]
+        return catalogo[_marca_de_pertencimento(catalogo, procurados)]
     return catalogo[catalogo["genero"].isin(list(procurados))]
+
+
+def _genero_visivel(faixa: Mapping[str, Any], procurados: set[str]) -> str:
+    """O gênero que o cartão deve mostrar, dado o que a pessoa procurou.
+
+    A coluna `genero` é o primeiro da lista em ordem ALFABÉTICA, o que faz o
+    cartão responder coisa diferente da pergunta: buscando Indie, uma faixa
+    com `['indian', 'indie', 'indie-pop']` se anuncia como *indian* e parece
+    erro de recomendação quando é acerto.
+
+    Prefere um gênero da família pedida; sem filtro de gênero, prefere um
+    gênero de verdade a uma etiqueta de playlist.
+    """
+    # `or []` não serve: `generos` chega como array do numpy, e testar a
+    # verdade de um array com vários itens levanta ValueError.
+    crus = faixa.get("generos")
+    lista = [] if crus is None else list(crus)
+    if not lista:
+        return str(faixa.get("genero", ""))
+    de_verdade = [g for g in lista if g not in artefatos.NAO_SAO_GENEROS]
+    da_familia = [g for g in de_verdade if g in procurados]
+    for candidatos in (da_familia, de_verdade,
+                       [g for g in lista if g in procurados], lista):
+        if candidatos:
+            return str(candidatos[0])
+    return str(faixa.get("genero", ""))
+
+
+def _marca_de_pertencimento(catalogo: pd.DataFrame,
+                            procurados: set[str]) -> pd.Series:
+    """Máscara booleana: quais faixas pertencem a `procurados`.
+
+    Regra única para o filtro de gênero e para o universo de cada semente —
+    as duas travessias precisam concordar, senão a semente reintroduz pela
+    etiqueta o que o filtro de gênero acabou de tirar.
+    """
+    def pertence(lista: Any) -> bool:
+        da_faixa = set(lista)
+        de_verdade = da_faixa - artefatos.NAO_SAO_GENEROS
+        return bool(procurados & (de_verdade or da_faixa))
+
+    return catalogo["generos"].apply(pertence)
 
 
 def centro(catalogo: pd.DataFrame, genero: str) -> dict[str, float]:
@@ -248,14 +300,16 @@ def _pool_da_semente(base: pd.DataFrame, semente: Semente,
     """
     if not semente.generos or "generos" not in base.columns:
         return base
-    niveis = (set(semente.generos),
-              familias.expandir(sorted({f for g in semente.generos
+    # Os gêneros DE VERDADE da semente: o Joji vem com `chill` na lista, e
+    # procurar por `chill` traz o catálogo inteiro de volta.
+    proprios = set(semente.generos) - artefatos.NAO_SAO_GENEROS or set(semente.generos)
+    niveis = (proprios,
+              familias.expandir(sorted({f for g in proprios
                                         if (f := familias.familia_de(g))})))
     for procurados in niveis[nivel_minimo:]:
         if not procurados:
             continue
-        pool = base[base["generos"].apply(
-            lambda lista: bool(procurados & set(lista)))]
+        pool = base[_marca_de_pertencimento(base, procurados)]
         if not pool.empty:
             return pool
     return base
@@ -465,6 +519,11 @@ def montar_resultado(catalogo: pd.DataFrame, artistas: pd.DataFrame,
     sementes = sementes_de_artistas(catalogo, artistas, favoritos)
     achadas = (garimpar_por_sementes(base, sementes, teto) if sementes
                else garimpar(base, alvo, teto))
+    if not achadas.empty and "generos" in achadas.columns:
+        procurados = familias.expandir(generos) if generos else set()
+        achadas = achadas.copy()
+        achadas["genero"] = [_genero_visivel(linha, procurados)
+                             for _, linha in achadas.iterrows()]
     return {
         "teto_minimo": teto_minimo_util(base),
         "titulo": "Joias — " + " · ".join(c.titulo for c in criterios),
@@ -632,6 +691,10 @@ def montar_resultado_conta(catalogo: pd.DataFrame,
     else:
         achadas = garimpar(catalogo, perfil.alvo, TETO_CONTA)
         ctx = "ela combina com o perfil médio das suas mais ouvidas"
+    if not achadas.empty and "generos" in achadas.columns:
+        achadas = achadas.copy()
+        achadas["genero"] = [_genero_visivel(linha, set())
+                             for _, linha in achadas.iterrows()]
     return {
         "titulo": "Joias pra você",
         "ctx": ctx,

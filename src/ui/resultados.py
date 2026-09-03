@@ -61,17 +61,10 @@ def _gerar_playlist_real(resultado: Mapping[str, Any], chave_url: str) -> None:
             url = spotify.criar_playlist(
                 st.session_state.token, st.session_state.sp_user["id"],
                 f"Gems Finder · {resultado['titulo']}", resultado["faixas"])
-    except requests.HTTPError as erro:
-        # 403 aqui é quase sempre permissão, não erro de rede: o token lê as
-        # mais ouvidas e mesmo assim não pode escrever playlist.
-        if erro.response is not None and erro.response.status_code == 403:
-            st.error(
-                "O Spotify recusou a criação da playlist (403). Isso costuma "
-                "ser falta da permissão de playlist na sua autorização — "
-                "desconecte e conecte de novo pra autorizar na tela do "
-                "Spotify.", icon="🔐")
-        else:
-            st.error(f"O Spotify não deixou criar a playlist: {erro}", icon="🚫")
+    except spotify.ErroDoSpotify as erro:
+        st.error(f"O Spotify recusou **{erro.etapa}** ({erro.status}): "
+                 f"{erro.motivo}", icon="🚫")
+        _diagnostico(erro)
         return
     except requests.RequestException as erro:
         st.error(f"Não consegui falar com o Spotify: {erro}", icon="🚫")
@@ -80,6 +73,29 @@ def _gerar_playlist_real(resultado: Mapping[str, Any], chave_url: str) -> None:
     st.success(f"Playlist criada na sua conta com as {len(resultado['faixas'])} joias "
                "dentro, privada. É só abrir o link.", icon="💎")
     st.balloons()
+
+
+def _diagnostico(erro: spotify.ErroDoSpotify) -> None:
+    """Mostra o estado real da conexão quando o Spotify recusa.
+
+    Sem isto o 403 vira adivinhação: dá para confundir escopo faltando com
+    app em modo de desenvolvimento ou conta fora da lista de testadores. Estes
+    três valores separam os casos, e são os que a pessoa precisa copiar para
+    conferir no dashboard do app.
+    """
+    if erro.status not in (401, 403):
+        return
+    concedidos = st.session_state.get("escopos", "") or "(nenhum registrado)"
+    usuario = (st.session_state.get("sp_user") or {}).get("id", "(sem id)")
+    with st.expander("O que a conexão está usando"):
+        st.markdown(
+            f"- **Escopos concedidos pelo Spotify:** `{concedidos}`\n"
+            f"- **Escopos que o app pede:** `{spotify.ESCOPOS}`\n"
+            f"- **Usuário da requisição:** `{usuario}`\n\n"
+            "Se a permissão de playlist **aparece** na primeira linha, não é "
+            "escopo: é o app em modo de desenvolvimento no dashboard do "
+            "Spotify, e a conta precisa estar na lista de testadores em "
+            "*Settings › User Management*.")
 
 
 def _pedir_conexao(resultado: Mapping[str, Any]) -> None:

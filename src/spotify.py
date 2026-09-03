@@ -140,6 +140,32 @@ def top_artistas(token: str, limite: int = 50) -> list[dict[str, object]]:
             for item in dados.get("items", [])]
 
 
+class ErroDoSpotify(RuntimeError):
+    """Erro da Web API com o motivo que o Spotify mandou no corpo.
+
+    `raise_for_status()` sozinho descarta o corpo da resposta, que é
+    justamente onde o Spotify explica a recusa — um 403 pode ser escopo
+    faltando, app em modo de desenvolvimento, conta fora da lista de
+    testadores ou id de usuário trocado, e a mensagem distingue os casos.
+    Sem ela sobra adivinhação.
+    """
+
+    def __init__(self, etapa: str, resposta: requests.Response) -> None:
+        self.etapa = etapa
+        self.status = resposta.status_code
+        try:
+            corpo = resposta.json().get("error", {})
+            self.motivo = str(corpo.get("message") or corpo) or resposta.text
+        except ValueError:
+            self.motivo = resposta.text[:300]
+        super().__init__(f"{etapa}: {self.status} — {self.motivo}")
+
+
+def _exigir_ok(etapa: str, resposta: requests.Response) -> None:
+    if not resposta.ok:
+        raise ErroDoSpotify(etapa, resposta)
+
+
 def criar_playlist(token: str, user_id: str, nome: str,
                    faixas: list[dict]) -> str:
     """Cria uma playlist privada com as faixas dentro e devolve a URL dela.
@@ -159,7 +185,7 @@ def criar_playlist(token: str, user_id: str, nome: str,
         json={"name": nome, "public": False, "description": descricao},
         timeout=TIMEOUT,
     )
-    resposta.raise_for_status()
+    _exigir_ok("criar a playlist", resposta)
     playlist = resposta.json()
 
     uris = [f"spotify:track:{faixa['track_id']}"
@@ -172,6 +198,6 @@ def criar_playlist(token: str, user_id: str, nome: str,
             json={"uris": uris},
             timeout=TIMEOUT,
         )
-        adicao.raise_for_status()
+        _exigir_ok("adicionar as faixas", adicao)
 
     return playlist["external_urls"]["spotify"]
