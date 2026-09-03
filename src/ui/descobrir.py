@@ -12,7 +12,8 @@ import streamlit as st
 from src.dados import VIBES, contar_por_genero
 from src.recomendacao import montar_resultado, rotulo_profundidade, texto_status
 from src.tema import LIMA
-from src.ui.componentes import bloco, cartao, container_com_chave, hero, passo, strata_html
+from src.ui.componentes import (bloco, cartao, container_com_chave, hero,
+                                numero_pt, passo, strata_html)
 from src.ui.mascote import mascote
 from src.ui.resultados import mostrar_resultados
 
@@ -67,7 +68,7 @@ def _selecao_genero(catalogo: pd.DataFrame, generos: list[str]) -> None:
     with container_com_chave("chips-generos"):
         for genero in generos:
             escolhido = genero in st.session_state.generos
-            if st.button(f"{genero} :gray[{contagem[genero]} faixas]",
+            if st.button(f"{genero} :gray[{numero_pt(contagem[genero])} faixas]",
                          key=f"chip_gen_{genero}",
                          type="primary" if escolhido else "secondary"):
                 _alternar(st.session_state.generos, genero)

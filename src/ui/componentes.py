@@ -18,6 +18,15 @@ def bloco(html: str) -> None:
     st.markdown(html, unsafe_allow_html=True)
 
 
+def numero_pt(valor: int) -> str:
+    """Número com ponto de milhar, como se escreve em português.
+
+    `f"{n:,}"` usa vírgula, que em pt-BR é separador decimal — 11,251 lê como
+    onze e pouco, não como onze mil.
+    """
+    return f"{valor:,}".replace(",", ".")
+
+
 def container_com_chave(chave: str):
     """Container com classe CSS `st-key-<chave>` (degrada em Streamlit antigo)."""
     try:
