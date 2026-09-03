@@ -78,6 +78,30 @@ GENEROS_FORA_DA_REFERENCIA = {"sleep", "white-noise", "comedy", "children",
                               "kids", "show-tunes"}
 
 
+# O `track_genre` do dataset mistura gênero com categoria de playlist. `piano`
+# e `guitar` são instrumento; `chill`, `sad`, `happy`, `study`, `sleep`,
+# `party` e `romance` são humor ou atividade; `club`, `groove` e
+# `world-music` são vagos demais para rotular um artista.
+#
+# A distinção importa porque essas categorias podem ser MAIORIA nas faixas de
+# um artista sem descrevê-lo: o dataset marca 135 das 141 faixas do
+# OneRepublic como `piano`, e a banda é pop rock — `rock` aparece em 56.
+NAO_SAO_GENEROS = {"piano", "guitar", "chill", "sad", "happy", "study",
+                   "sleep", "party", "romance", "club", "groove",
+                   "world-music"}
+
+
+def _rotulo_de_genero(generos: Any) -> str:
+    """O gênero que melhor rotula um artista, dada a lista das faixas dele.
+
+    Prefere o mais frequente que seja gênero de verdade; só cai numa categoria
+    de playlist se o artista não tiver nenhum outro.
+    """
+    contagem = generos.value_counts()
+    de_verdade = contagem[~contagem.index.isin(NAO_SAO_GENEROS)]
+    return str((de_verdade if not de_verdade.empty else contagem).index[0])
+
+
 def raiz() -> Path:
     """Raiz do repositório, a partir da localização deste arquivo."""
     return Path(__file__).resolve().parent.parent
@@ -151,14 +175,10 @@ def artistas() -> pd.DataFrame:
               .reset_index()
               .rename(columns={"nome": "artista"}))
 
-    # O gênero de exibição sai do mais frequente entre TODAS as faixas do
-    # artista, não da coluna `genero`: essa é o primeiro item em ordem
-    # alfabética da lista de gêneros da faixa, o que é estável mas arbitrário
-    # — daí OneRepublic aparecer como "piano".
     generos_do_artista = (por_artista[["nome", "generos"]]
                           .explode("generos")
                           .groupby("nome")["generos"]
-                          .agg(lambda s: s.mode().iat[0]))
+                          .agg(_rotulo_de_genero))
     perfil["genero"] = perfil["artista"].map(generos_do_artista)
 
     # Variedade importa mais que popularidade bruta: pegamos os mais
