@@ -7,14 +7,15 @@ HTML, mais o garimpo (filtro + ranking) e as métricas exibidas na UI.
 from __future__ import annotations
 
 import math
-import random
 import re
 from typing import Any, Mapping, NamedTuple, Sequence
 
 import numpy as np
 import pandas as pd
 
-from src.dados import ATRIBUTOS, PESOS, PRECISAO_8, PERFIL_USUARIO, TETO_CONTA, VIBES
+from src import artefatos
+from src import generos as familias
+from src.dados import ATRIBUTOS, PESOS, PERFIL_USUARIO, TETO_CONTA, VIBES
 from src.tema import LIMA, PERI, ROSA
 
 
@@ -43,9 +44,25 @@ def media(faixas: pd.DataFrame) -> dict[str, float]:
     return {atributo: float(faixas[atributo].mean()) for atributo in ATRIBUTOS}
 
 
+def _do_genero(catalogo: pd.DataFrame, generos: Sequence[str]) -> pd.DataFrame:
+    """Faixas que pertencem a qualquer um dos gêneros dados.
+
+    Uma faixa pertence a vários gêneros, e a coluna `generos` guarda todos. A
+    coluna `genero` é só o primeiro deles em ordem alfabética — estável para
+    exibir, mas errada para filtrar: escolher "rock" perderia uma faixa cujos
+    gêneros são ["alt-rock", "rock"]. Sem a lista, cai na coluna simples.
+    """
+    procurados = familias.expandir(generos)
+    if "generos" in catalogo.columns:
+        pertence = catalogo["generos"].apply(
+            lambda lista: bool(procurados & set(lista)))
+        return catalogo[pertence]
+    return catalogo[catalogo["genero"].isin(list(procurados))]
+
+
 def centro(catalogo: pd.DataFrame, genero: str) -> dict[str, float]:
     """Centroide de atributos de áudio das faixas de um gênero."""
-    return media(catalogo[catalogo["genero"] == genero])
+    return media(_do_genero(catalogo, [genero]))
 
 
 def media_de_vetores(vetores: Sequence[Mapping[str, float]]) -> dict[str, float]:
@@ -62,7 +79,7 @@ def universo(catalogo: pd.DataFrame, generos: Sequence[str]) -> pd.DataFrame:
     """Universo de busca: o catálogo todo, ou só as faixas dos gêneros escolhidos."""
     if not generos:
         return catalogo
-    return catalogo[catalogo["genero"].isin(list(generos))]
+    return _do_genero(catalogo, generos)
 
 
 class Criterio(NamedTuple):
@@ -116,15 +133,6 @@ def texto_status(vibes: Sequence[str], generos: Sequence[str],
     return f"Buscando por {descricao}, com popularidade até <b>{teto}</b>."
 
 
-def precisao_combinada(n_criterios: int) -> int:
-    """Precisão @8 PLACEHOLDER: sobe com cada critério combinado no passo 1.
-
-    Não é medida — ver o TODO em `src/dados.py::PRECISAO_8`.
-    """
-    return PRECISAO_8["base"] + min(PRECISAO_8["bonus_maximo"],
-                                    n_criterios * PRECISAO_8["por_criterio"])
-
-
 def rar(popularidade: int) -> tuple[str, str]:
     """Selo de raridade e a cor correspondente, a partir da popularidade."""
     if popularidade <= 8:
@@ -134,9 +142,30 @@ def rar(popularidade: int) -> tuple[str, str]:
     return "Pouco ouvida", PERI
 
 
+def elegiveis_para_garimpo(base: pd.DataFrame) -> pd.DataFrame:
+    """Só as faixas que podem ser recomendadas.
+
+    A coluna `elegivel` vem do catálogo processado e junta as três condições
+    que o modelo definiu: popularidade acima do piso (popularidade 0 é faixa
+    não capturada, não faixa sem streams), artista independente, e ser música
+    e não conteúdo falado.
+
+    É aqui que o diferencial de negócio chega ao app. Sem isso o garimpo
+    devolve lado-B de artista consolidado, que tem popularidade baixa sem ser
+    joia escondida de ninguém.
+
+    Catálogo sem a coluna passa direto — é o caso dos testes, que montam
+    DataFrames pequenos à mão.
+    """
+    if "elegivel" not in base.columns:
+        return base
+    return base[base["elegivel"]]
+
+
 def garimpar(base: pd.DataFrame, alvo: Mapping[str, float], teto: int,
              limite: int = 8) -> pd.DataFrame:
-    """Filtra por popularidade <= teto, ranqueia por match e devolve as N melhores."""
+    """Filtra por elegibilidade e popularidade <= teto, e ranqueia por match."""
+    base = elegiveis_para_garimpo(base)
     elegiveis = base[base["popularidade"] <= teto].copy()
     if elegiveis.empty:
         return elegiveis.assign(match=pd.Series(dtype="int64"))
@@ -146,8 +175,30 @@ def garimpar(base: pd.DataFrame, alvo: Mapping[str, float], teto: int,
             .head(limite).reset_index(drop=True))
 
 
+def teto_minimo_util(base: pd.DataFrame) -> int | None:
+    """Menor teto de popularidade que ainda devolve alguma joia neste universo.
+
+    Existe porque alguns gêneros deste catálogo não têm cauda obscura: os
+    quatro brasileiros só aparecem a partir de 23 a 43 de popularidade, então
+    na posição padrão do slider eles vêm sempre vazios. Dizer "aumenta a
+    popularidade" sem dizer até quanto deixa a pessoa tateando.
+
+    Devolve None quando não há faixa elegível nenhuma — aí subir o slider não
+    resolve, e a dica tem que ser outra.
+    """
+    elegiveis = elegiveis_para_garimpo(base)
+    if elegiveis.empty:
+        return None
+    return int(elegiveis["popularidade"].min())
+
+
 def cobertura(base: pd.DataFrame, teto: int) -> int:
-    """% do universo elegível que passa no filtro de popularidade."""
+    """% do universo elegível que passa no filtro de popularidade.
+
+    Mede sobre o mesmo universo que o garimpo percorre, senão o número na
+    tela descreveria uma busca diferente da que aconteceu.
+    """
+    base = elegiveis_para_garimpo(base)
     if base.empty:
         return 0
     return round_js(len(base[base["popularidade"] <= teto]) / len(base) * 100)
@@ -165,7 +216,18 @@ def rotulo_profundidade(teto: int) -> str:
 
 
 def humor_da_faixa(faixa: Mapping[str, Any]) -> str:
-    """Expressão da mascote que combina com os atributos da faixa."""
+    """Expressão da mascote que combina com a faixa.
+
+    Se a faixa já traz o mood do cluster, usamos a expressão daquele mood: a
+    carinha ao lado do nome não pode discordar do rótulo mostrado logo abaixo
+    dela. Sem essa coluna, cai nos limiares herdados do protótipo.
+    """
+    mood = faixa.get("mood")
+    if mood:
+        apresentacao = artefatos.APRESENTACAO.get(mood)
+        if apresentacao:
+            return apresentacao["humor"]
+
     if float(faixa["valencia"]) < .3:
         return "triste"
     if float(faixa["energia"]) > .75:
@@ -173,12 +235,6 @@ def humor_da_faixa(faixa: Mapping[str, Any]) -> str:
     if float(faixa["instrumentalidade"]) > .7:
         return "foco"
     return "chill"
-
-
-def novo_id_playlist(tamanho: int = 22) -> str:
-    """ID aleatório no formato usado pelas playlists do Spotify."""
-    alfabeto = "abcdefghijklmnopqrstuvwxyz0123456789"
-    return "".join(random.choice(alfabeto) for _ in range(tamanho))
 
 
 def email_valido(email: str) -> bool:
@@ -208,9 +264,9 @@ def montar_resultado(catalogo: pd.DataFrame, artistas: pd.DataFrame,
     alvo = media_de_vetores([criterio.alvo for criterio in criterios])
     achadas = garimpar(base, alvo, teto)
     return {
+        "teto_minimo": teto_minimo_util(base),
         "titulo": "Joias — " + " · ".join(c.titulo for c in criterios),
         "ctx": " e ".join(c.ctx for c in criterios),
-        "precisao": precisao_combinada(len(criterios)),
         "cobertura": cobertura(base, teto),
         "faixas": achadas.to_dict("records"),
         "media_match": round_js(achadas["match"].mean()) if len(achadas) else 0,
@@ -228,7 +284,6 @@ def montar_resultado_conta(catalogo: pd.DataFrame) -> dict[str, Any]:
     return {
         "titulo": "Joias pra você",
         "ctx": "ela combina com o perfil médio das suas mais ouvidas",
-        "precisao": PRECISAO_8["conta"],
         "cobertura": cobertura(catalogo, TETO_CONTA),
         "faixas": achadas.to_dict("records"),
         "media_match": round_js(achadas["match"].mean()) if len(achadas) else 0,

@@ -96,19 +96,36 @@ def top_faixas(token: str, limite: int = 5) -> list[tuple[str, str]]:
 
 def criar_playlist(token: str, user_id: str, nome: str,
                    faixas: list[dict]) -> str:
-    """Cria uma playlist privada de verdade e devolve a URL pública dela.
+    """Cria uma playlist privada com as faixas dentro e devolve a URL dela.
 
-    As faixas do catálogo são fictícias (não existem no Spotify), então a
-    playlist nasce vazia com as joias na descrição.
+    O catálogo processado traz o `track_id` real de cada faixa, então a
+    playlist nasce **preenchida**. Antes ela nascia vazia, com as joias apenas
+    na descrição, porque o catálogo era fictício e não tinha ID.
     """
     descricao = ("Garimpada pelo Gems Finder (Residência em IA · UnB · Instituto ELDORADO): "
                  + " · ".join(f'{faixa["faixa"]} ({faixa["artista"]})'
                               for faixa in faixas))[:300]
+    cabecalho = {"Authorization": f"Bearer {token}"}
+
     resposta = requests.post(
         f"{URL_API}/users/{user_id}/playlists",
-        headers={"Authorization": f"Bearer {token}"},
+        headers=cabecalho,
         json={"name": nome, "public": False, "description": descricao},
         timeout=TIMEOUT,
     )
     resposta.raise_for_status()
-    return resposta.json()["external_urls"]["spotify"]
+    playlist = resposta.json()
+
+    uris = [f"spotify:track:{faixa['track_id']}"
+            for faixa in faixas if faixa.get("track_id")]
+    if uris:
+        # O endpoint aceita até 100 URIs por chamada; nossas 8 cabem numa só.
+        adicao = requests.post(
+            f"{URL_API}/playlists/{playlist['id']}/tracks",
+            headers=cabecalho,
+            json={"uris": uris},
+            timeout=TIMEOUT,
+        )
+        adicao.raise_for_status()
+
+    return playlist["external_urls"]["spotify"]

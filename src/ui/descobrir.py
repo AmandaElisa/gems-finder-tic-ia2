@@ -5,12 +5,15 @@ from __future__ import annotations
 import time
 
 import pandas as pd
+from typing import Any, Mapping
+
 import streamlit as st
 
-from src.dados import VIBES
+from src.dados import VIBES, contar_por_genero
 from src.recomendacao import montar_resultado, rotulo_profundidade, texto_status
 from src.tema import LIMA
-from src.ui.componentes import bloco, cartao, container_com_chave, hero, passo, strata_html
+from src.ui.componentes import (bloco, cartao, container_com_chave, hero,
+                                numero_pt, passo, strata_html)
 from src.ui.mascote import mascote
 from src.ui.resultados import mostrar_resultados
 
@@ -28,9 +31,23 @@ def _grupo(titulo: str, nota: str) -> None:
     bloco(f'<p class="gf-grupo">{titulo} <span>{nota}</span></p>')
 
 
+def _dica_vazia(resultado: Mapping[str, Any]) -> str:
+    """Dica do estado vazio, dizendo até quanto subir o slider.
+
+    Alguns gêneros deste catálogo só existem acima de certa popularidade, e a
+    dica genérica deixava a pessoa subindo o slider às cegas.
+    """
+    minimo = resultado.get("teto_minimo")
+    if minimo is None:
+        return ("Cavei fundo e não achei joia nenhuma com esses critérios — "
+                "nem subindo a popularidade. Tenta trocar os critérios do passo 1.")
+    return (f"Cavei fundo e não achei nada nessa profundidade. Aqui as joias "
+            f"começam em <b>{minimo}</b> de popularidade — sobe o slider do "
+            f"passo 2 até lá.")
+
 def _selecao_vibe() -> None:
     """Os 4 cards de vibe, um por coluna — o card inteiro é clicável, e alterna."""
-    for coluna, (chave, vibe) in zip(st.columns(4), VIBES.items()):
+    for coluna, (chave, vibe) in zip(st.columns(len(VIBES)), VIBES.items()):
         with coluna:
             escolhida = chave in st.session_state.vibes
             classe = "gf-vibe on" if escolhida else "gf-vibe"
@@ -46,12 +63,12 @@ def _selecao_vibe() -> None:
 
 
 def _selecao_genero(catalogo: pd.DataFrame, generos: list[str]) -> None:
-    """Chips com os 12 gêneros e a contagem de faixas — os escolhidos ficam em lima."""
-    contagem = catalogo["genero"].value_counts()
+    """Chips de gênero com a contagem de faixas — os escolhidos ficam em lima."""
+    contagem = contar_por_genero(catalogo)
     with container_com_chave("chips-generos"):
         for genero in generos:
             escolhido = genero in st.session_state.generos
-            if st.button(f"{genero} :gray[{contagem[genero]} faixas]",
+            if st.button(f"{genero} :gray[{numero_pt(contagem[genero])} faixas]",
                          key=f"chip_gen_{genero}",
                          type="primary" if escolhido else "secondary"):
                 _alternar(st.session_state.generos, genero)
@@ -148,5 +165,4 @@ def pagina_descobrir(catalogo: pd.DataFrame, artistas: pd.DataFrame,
     if st.session_state.res_desc:
         mostrar_resultados(
             st.session_state.res_desc, "desc",
-            dica_vazia="Cavei fundo e não achei nada aqui. Aumenta a popularidade "
-                       "máxima no passo 2 ou ajusta os critérios do passo 1.")
+            dica_vazia=_dica_vazia(st.session_state.res_desc))

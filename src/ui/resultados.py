@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-import time
 from typing import Any, Mapping
 
 import requests
 import streamlit as st
 
 from src import spotify
-from src.recomendacao import novo_id_playlist
 from src.ui.componentes import (barras_atributos_html, bloco, cartao,
                                 container_com_chave, estado_vazio_html,
                                 gema_topo_html, metricas_html, passo)
@@ -36,7 +34,10 @@ def mostrar_resultados(resultado: Mapping[str, Any], espaco: str, dica_vazia: st
                           + f'<p class="gf-why">Entrou porque {resultado["ctx"]} — e só '
                             f'{faixa["popularidade"]} de 100 no índice de popularidade.</p>')
 
-    secao_playlist(resultado, espaco)
+    # A playlist exige conta conectada, então mora na aba Minha conta. Aqui
+    # cada joia tem seu link direto, que funciona sem login.
+    if espaco != "desc":
+        secao_playlist(resultado, espaco)
 
 
 def _gerar_playlist_real(resultado: Mapping[str, Any], chave_url: str) -> None:
@@ -50,20 +51,25 @@ def _gerar_playlist_real(resultado: Mapping[str, Any], chave_url: str) -> None:
         st.error(f"O Spotify não deixou criar a playlist: {erro}", icon="🚫")
         return
     st.session_state[chave_url] = url
-    st.success(f"Playlist criada de verdade na sua conta! Como as {len(resultado['faixas'])} "
-               "joias do catálogo são fictícias, ela nasce vazia com a lista na descrição.",
-               icon="💎")
+    st.success(f"Playlist criada na sua conta com as {len(resultado['faixas'])} joias "
+               "dentro, privada. É só abrir o link.", icon="💎")
     st.balloons()
 
 
-def _gerar_playlist_simulada(resultado: Mapping[str, Any], chave_url: str) -> None:
-    """Fallback do protótipo: link fictício no formato do Spotify."""
-    with st.spinner("Criando…"):
-        time.sleep(0.9)
-    st.session_state[chave_url] = f"https://open.spotify.com/playlist/{novo_id_playlist()}"
-    st.success(f"Playlist criada! Guardei suas {len(resultado['faixas'])} joias "
-               f"em «{resultado['titulo']}» — é só abrir o link.", icon="💎")
-    st.balloons()
+def _pedir_conexao(resultado: Mapping[str, Any]) -> None:
+    """Sem conta conectada não há playlist — e não inventamos link.
+
+    A versão anterior gerava uma URL fictícia no formato do Spotify. Ela
+    parecia real, abria em "playlist não disponível", e a pessoa achava que
+    tinha perdido a playlist. Prometer o que não existe é justamente o que o
+    princípio 2 da constituição proíbe.
+    """
+    st.info(
+        f"Pra levar estas {len(resultado['faixas'])} joias, conecte sua conta "
+        "do Spotify em **🎧 Minha conta** — a playlist é criada lá, privada e "
+        "já com as faixas dentro.",
+        icon="🔗",
+    )
 
 
 def secao_playlist(resultado: Mapping[str, Any], espaco: str) -> None:
@@ -78,7 +84,7 @@ def secao_playlist(resultado: Mapping[str, Any], espaco: str) -> None:
             if conectado_real:
                 _gerar_playlist_real(resultado, chave_url)
             else:
-                _gerar_playlist_simulada(resultado, chave_url)
+                _pedir_conexao(resultado)
 
         url = st.session_state.get(chave_url)
         if url:

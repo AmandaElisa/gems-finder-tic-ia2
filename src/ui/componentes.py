@@ -18,6 +18,15 @@ def bloco(html: str) -> None:
     st.markdown(html, unsafe_allow_html=True)
 
 
+def numero_pt(valor: int) -> str:
+    """Número com ponto de milhar, como se escreve em português.
+
+    `f"{n:,}"` usa vírgula, que em pt-BR é separador decimal — 11,251 lê como
+    onze e pouco, não como onze mil.
+    """
+    return f"{valor:,}".replace(",", ".")
+
+
 def container_com_chave(chave: str):
     """Container com classe CSS `st-key-<chave>` (degrada em Streamlit antigo)."""
     try:
@@ -71,15 +80,19 @@ def barras_atributos_html(valores: Mapping[str, Any]) -> str:
 
 
 def metricas_html(resultado: Mapping[str, Any]) -> str:
-    """Linha com as 4 métricas; as duas do modelo levam o selo MODELO."""
+    """Linha com as métricas; a Cobertura leva o selo MODELO por ser medida.
+
+    A Precisão @8 saiu daqui. Ela era um placeholder herdado do protótipo, e a
+    legenda afirmava "sugestões aprovadas nos testes com usuários" — teste que
+    nunca aconteceu. Métrica fabricada é pior que métrica ausente; volta quando
+    houver protocolo de avaliação escrito.
+    """
     return (
         '<div class="gf-metrics">'
         f'<div class="gf-met a"><p>Joias encontradas</p><strong>{len(resultado["faixas"])}</strong>'
         '<small>as 8 melhores do ranking</small></div>'
         f'<div class="gf-met b"><p>Match médio</p><strong>{resultado["media_match"]}%</strong>'
         f'<small>{resultado["sub_match"]}</small></div>'
-        f'<div class="gf-met modelo"><p>Precisão @8</p><strong>{resultado["precisao"]}%</strong>'
-        '<small>sugestões aprovadas nos testes com usuários</small></div>'
         f'<div class="gf-met modelo"><p>Cobertura</p><strong>{resultado["cobertura"]}%</strong>'
         f'<small>{resultado["sub_cobertura"]}</small></div>'
         '</div>'
@@ -92,13 +105,28 @@ def gema_topo_html(faixa: Mapping[str, Any]) -> str:
     return (
         f'<div class="gf-gtop">{mascote(cor, humor_da_faixa(faixa), 44)}'
         f'<span class="txt"><b>{faixa["faixa"]}</b>'
-        f'<i>{faixa["artista"]} · {faixa["cidade"]}, {faixa["ano"]}</i></span>'
+        f'<i>{faixa["artista"]}</i></span>'
         f'<span class="mt"><strong>{faixa["match"]}%</strong><small>match</small></span></div>'
         f'<div class="gf-meta"><span class="gf-badge" style="background:{cor}">{selo}</span>'
         f'<span class="gf-badge">{faixa["genero"]}</span>'
         f'<span class="gf-badge">pop {faixa["popularidade"]}</span>'
-        f'<span class="gf-badge">{faixa["bpm"]} BPM</span></div>'
+        f'<span class="gf-badge">{round(float(faixa["bpm"]))} BPM</span>'
+        f'{_link_spotify(faixa)}</div>'
     )
+
+
+def _link_spotify(faixa: Mapping[str, Any]) -> str:
+    """Selo que abre a faixa no Spotify, quando ela tem ID real.
+
+    Não exige login de ninguém: o link de faixa é público. É o que permite
+    levar a joia embora mesmo sem conta conectada — a playlist, que exige
+    autorização de usuário, vive na aba Minha conta.
+    """
+    track_id = faixa.get("track_id")
+    if not track_id:
+        return ""
+    return (f'<a class="gf-badge gf-ouvir" target="_blank" rel="noopener" '
+            f'href="https://open.spotify.com/track/{track_id}">▶ Ouvir</a>')
 
 
 def estado_vazio_html(dica: str) -> str:

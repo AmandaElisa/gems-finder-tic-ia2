@@ -114,12 +114,20 @@ hr{border-color:rgba(20,20,20,.15);}
 [class*="st-key-vibecard-"]{position:relative;}
 [class*="st-key-vibecard-"]:hover .gf-vibe{transform:translate(-2px,-2px);
   box-shadow:6px 6px 0 var(--tinta);}
+/* O card visual não pode interceptar o clique: ele é só desenho, e o botão
+   invisível embaixo é quem recebe. Sem isto o clique morre no <div>. */
+[class*="st-key-vibecard-"] .gf-vibe{pointer-events:none;}
 [class*="st-key-vibecard-"] [data-testid="stElementContainer"]:has(.stButton){
-  position:absolute;inset:0;z-index:2;margin:0;}
+  position:absolute;inset:0;z-index:3;margin:0;pointer-events:auto;}
 [class*="st-key-vibecard-"] .stButton, [class*="st-key-vibecard-"] .stButton > button{
-  width:100%;height:100%;}
+  width:100%;height:100%;min-width:0;}
 [class*="st-key-vibecard-"] .stButton > button{opacity:0;cursor:pointer;border-radius:20px;
-  box-shadow:none;}
+  box-shadow:none;padding:0;pointer-events:auto;}
+
+/* selo que abre a faixa no Spotify — verde da marca, e é <a>, não botão */
+.gf-badge.gf-ouvir{background:var(--verde);color:#fff;text-decoration:none;
+  font-weight:600;cursor:pointer;transition:.14s;}
+.gf-badge.gf-ouvir:hover{filter:brightness(1.08);transform:translateY(-1px);}
 
 /* ---------- chips de gênero e artista (st.buttons em linha com quebra) ---------- */
 [class*="st-key-chips-"]{flex-direction:row !important;flex-wrap:wrap;gap:10px;}
@@ -148,7 +156,7 @@ hr{border-color:rgba(20,20,20,.15);}
 .gf-sec{display:flex;align-items:center;gap:12px;margin:30px 0 12px;flex-wrap:wrap;}
 .gf-sec h3{font-family:var(--d);font-size:24px;font-weight:600;margin:0;}
 .gf-sec p{margin:0;font-size:13.5px;color:var(--mute);}
-.gf-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+.gf-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
 .gf-met{background:#fff;border:2px solid var(--tinta);border-radius:18px;padding:14px 18px;
   box-shadow:4px 4px 0 var(--tinta);}
 .gf-met.a{background:var(--lima);} .gf-met.b{background:var(--peri);}
