@@ -63,7 +63,7 @@ APRESENTACAO: dict[str, dict[str, str]] = {
     "Foco":      {"cor": AZUL_CLARO, "humor": "triste", "desc": "estudar e trabalhar"},
     "Aconchego": {"cor": LIMA,       "humor": "chill",  "desc": "leve e acústica"},
     "Treino":    {"cor": ROSA,       "humor": "treino", "desc": "batida constante"},
-    "Heavy":     {"cor": PERI,       "humor": "foco",   "desc": "crua e visceral"},
+    "Heavy":     {"cor": PERI,       "humor": "foco",   "desc": "bruta e elétrica"},
     "Gingado":   {"cor": AZUL,       "humor": "feliz",  "desc": "pra dançar"},
 }
 

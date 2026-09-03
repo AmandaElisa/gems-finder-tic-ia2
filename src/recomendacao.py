@@ -7,7 +7,6 @@ HTML, mais o garimpo (filtro + ranking) e as métricas exibidas na UI.
 from __future__ import annotations
 
 import math
-import random
 import re
 from typing import Any, Mapping, NamedTuple, Sequence
 
@@ -152,9 +151,30 @@ def rar(popularidade: int) -> tuple[str, str]:
     return "Pouco ouvida", PERI
 
 
+def elegiveis_para_garimpo(base: pd.DataFrame) -> pd.DataFrame:
+    """Só as faixas que podem ser recomendadas.
+
+    A coluna `elegivel` vem do catálogo processado e junta as três condições
+    que o modelo definiu: popularidade acima do piso (popularidade 0 é faixa
+    não capturada, não faixa sem streams), artista independente, e ser música
+    e não conteúdo falado.
+
+    É aqui que o diferencial de negócio chega ao app. Sem isso o garimpo
+    devolve lado-B de artista consolidado, que tem popularidade baixa sem ser
+    joia escondida de ninguém.
+
+    Catálogo sem a coluna passa direto — é o caso dos testes, que montam
+    DataFrames pequenos à mão.
+    """
+    if "elegivel" not in base.columns:
+        return base
+    return base[base["elegivel"]]
+
+
 def garimpar(base: pd.DataFrame, alvo: Mapping[str, float], teto: int,
              limite: int = 8) -> pd.DataFrame:
-    """Filtra por popularidade <= teto, ranqueia por match e devolve as N melhores."""
+    """Filtra por elegibilidade e popularidade <= teto, e ranqueia por match."""
+    base = elegiveis_para_garimpo(base)
     elegiveis = base[base["popularidade"] <= teto].copy()
     if elegiveis.empty:
         return elegiveis.assign(match=pd.Series(dtype="int64"))
@@ -165,7 +185,12 @@ def garimpar(base: pd.DataFrame, alvo: Mapping[str, float], teto: int,
 
 
 def cobertura(base: pd.DataFrame, teto: int) -> int:
-    """% do universo elegível que passa no filtro de popularidade."""
+    """% do universo elegível que passa no filtro de popularidade.
+
+    Mede sobre o mesmo universo que o garimpo percorre, senão o número na
+    tela descreveria uma busca diferente da que aconteceu.
+    """
+    base = elegiveis_para_garimpo(base)
     if base.empty:
         return 0
     return round_js(len(base[base["popularidade"] <= teto]) / len(base) * 100)
@@ -202,12 +227,6 @@ def humor_da_faixa(faixa: Mapping[str, Any]) -> str:
     if float(faixa["instrumentalidade"]) > .7:
         return "foco"
     return "chill"
-
-
-def novo_id_playlist(tamanho: int = 22) -> str:
-    """ID aleatório no formato usado pelas playlists do Spotify."""
-    alfabeto = "abcdefghijklmnopqrstuvwxyz0123456789"
-    return "".join(random.choice(alfabeto) for _ in range(tamanho))
 
 
 def email_valido(email: str) -> bool:

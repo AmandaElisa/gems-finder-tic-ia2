@@ -114,12 +114,15 @@ hr{border-color:rgba(20,20,20,.15);}
 [class*="st-key-vibecard-"]{position:relative;}
 [class*="st-key-vibecard-"]:hover .gf-vibe{transform:translate(-2px,-2px);
   box-shadow:6px 6px 0 var(--tinta);}
+/* O card visual não pode interceptar o clique: ele é só desenho, e o botão
+   invisível embaixo é quem recebe. Sem isto o clique morre no <div>. */
+[class*="st-key-vibecard-"] .gf-vibe{pointer-events:none;}
 [class*="st-key-vibecard-"] [data-testid="stElementContainer"]:has(.stButton){
-  position:absolute;inset:0;z-index:2;margin:0;}
+  position:absolute;inset:0;z-index:3;margin:0;pointer-events:auto;}
 [class*="st-key-vibecard-"] .stButton, [class*="st-key-vibecard-"] .stButton > button{
-  width:100%;height:100%;}
+  width:100%;height:100%;min-width:0;}
 [class*="st-key-vibecard-"] .stButton > button{opacity:0;cursor:pointer;border-radius:20px;
-  box-shadow:none;}
+  box-shadow:none;padding:0;pointer-events:auto;}
 
 /* ---------- chips de gênero e artista (st.buttons em linha com quebra) ---------- */
 [class*="st-key-chips-"]{flex-direction:row !important;flex-wrap:wrap;gap:10px;}
