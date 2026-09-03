@@ -489,27 +489,27 @@ class TestPerfilDoUsuario:
     faixas reais de quem conectava. Estes testes travam a ligação entre as duas
     coisas: o perfil sai das faixas que a pessoa realmente ouve."""
 
+    # Seis faixas: precisa passar de MINIMO_DE_FAIXAS_CRUZADAS para o perfil
+    # sair das faixas em vez de descer para a aproximação por gênero.
     CATALOGO = catalog(
-        {**track(popularidade=40, energia=.9), "track_id": "aaa", "faixa": "A"},
-        {**track(popularidade=40, energia=.5), "track_id": "bbb", "faixa": "B"},
-        {**track(popularidade=40, energia=.1), "track_id": "ccc", "faixa": "C"},
+        *[{**track(popularidade=40, energia=e), "track_id": tid, "faixa": tid.upper()}
+          for tid, e in [("aaa", .9), ("bbb", .9), ("ccc", .9),
+                         ("ddd", .1), ("eee", .1), ("fff", .1)]],
     )
+    SEIS = [{"id": t} for t in ("aaa", "bbb", "ccc", "ddd", "eee", "fff")]
 
     def test_the_profile_is_the_mean_of_the_matched_tracks(self) -> None:
-        perfil = perfil_do_usuario(
-            self.CATALOGO, [{"id": "aaa"}, {"id": "ccc"}])
+        perfil = perfil_do_usuario(self.CATALOGO, self.SEIS)
         assert perfil.e_real
-        assert perfil.encontradas == 2
-        assert perfil.pedidas == 2
-        assert perfil.alvo["energia"] == pytest.approx(.5)   # (.9 + .1) / 2
+        assert perfil.encontradas == 6
+        assert perfil.alvo["energia"] == pytest.approx(.5)   # três .9 e três .1
 
     def test_it_counts_what_was_asked_and_what_was_found(self) -> None:
-        # Quatro faixas pedidas, duas no catálogo: é essa fração que a tela
-        # mostra à pessoa, e mentir nela seria pior que não mostrar.
+        # A tela mostra essa fração à pessoa, e mentir nela seria pior que não
+        # mostrar.
         perfil = perfil_do_usuario(
-            self.CATALOGO,
-            [{"id": "aaa"}, {"id": "bbb"}, {"id": "zzz"}, {"id": "yyy"}])
-        assert (perfil.encontradas, perfil.pedidas) == (2, 4)
+            self.CATALOGO, self.SEIS + [{"id": "zzz"}, {"id": "yyy"}])
+        assert (perfil.encontradas, perfil.pedidas) == (6, 8)
 
     def test_no_match_falls_back_and_says_so(self) -> None:
         perfil = perfil_do_usuario(self.CATALOGO, [{"id": "zzz"}])
@@ -542,3 +542,50 @@ class TestDescreverPerfil:
         intenso = {**NEUTRAL, "energia": .95, "valencia": .9}
         melancolico = {**NEUTRAL, "energia": .1, "valencia": .05}
         assert descrever_perfil(intenso) != descrever_perfil(melancolico)
+
+class TestCascataDoPerfil:
+    """Três níveis, do mais preciso ao mais grosso, e a tela precisa saber por
+    qual deles passou — senão diz "seu perfil" sobre uma aproximação."""
+
+    CATALOGO = catalog(
+        *[{**track(popularidade=40, energia=.9), "track_id": f"r{i}",
+           "generos": ["rock"], "genero": "rock", "faixa": f"R{i}"} for i in range(6)],
+        *[{**track(popularidade=40, energia=.1), "track_id": f"j{i}",
+           "generos": ["jazz"], "genero": "jazz", "faixa": f"J{i}"} for i in range(6)],
+    )
+
+    def test_enough_matched_tracks_uses_their_mean(self) -> None:
+        pedidas = [{"id": f"r{i}"} for i in range(6)]
+        perfil = perfil_do_usuario(self.CATALOGO, pedidas, ["jazz"])
+        assert perfil.origem == "faixas"
+        # Usou as faixas, não os gêneros: energia .9 é do rock.
+        assert perfil.alvo["energia"] == pytest.approx(.9)
+
+    def test_too_few_tracks_falls_back_to_the_genre_centroid(self) -> None:
+        # Duas faixas são um momento, não um gosto — abaixo do mínimo.
+        perfil = perfil_do_usuario(
+            self.CATALOGO, [{"id": "r0"}, {"id": "r1"}], ["jazz"])
+        assert perfil.origem == "generos"
+        assert perfil.generos_usados == ("jazz",)
+        assert perfil.alvo["energia"] == pytest.approx(.1)
+        # Continua sendo um perfil da pessoa, só que aproximado.
+        assert perfil.e_real
+
+    def test_it_keeps_only_the_genres_our_catalogue_knows(self) -> None:
+        # O Spotify usa vocabulário próprio ("brazilian rock") que nem sempre
+        # existe no nosso track_genre.
+        perfil = perfil_do_usuario(
+            self.CATALOGO, [{"id": "r0"}], ["jazz", "vaporwave-inexistente"])
+        assert perfil.generos_usados == ("jazz",)
+
+    def test_no_tracks_and_no_known_genre_is_an_example(self) -> None:
+        perfil = perfil_do_usuario(self.CATALOGO, [{"id": "zzz"}], ["inexistente"])
+        assert perfil.origem == "exemplo"
+        assert not perfil.e_real
+
+    def test_the_counts_survive_the_fallback(self) -> None:
+        # A tela mostra "N das suas M": os números não podem sumir só porque
+        # a cascata desceu um nível.
+        perfil = perfil_do_usuario(
+            self.CATALOGO, [{"id": "r0"}, {"id": "zz"}, {"id": "yy"}], ["jazz"])
+        assert (perfil.encontradas, perfil.pedidas) == (1, 3)
