@@ -7,7 +7,7 @@ import time
 import pandas as pd
 import streamlit as st
 
-from src.dados import VIBES
+from src.dados import VIBES, contar_por_genero
 from src.recomendacao import montar_resultado, rotulo_profundidade, texto_status
 from src.tema import LIMA
 from src.ui.componentes import bloco, cartao, container_com_chave, hero, passo, strata_html
@@ -46,8 +46,8 @@ def _selecao_vibe() -> None:
 
 
 def _selecao_genero(catalogo: pd.DataFrame, generos: list[str]) -> None:
-    """Chips com os 12 gêneros e a contagem de faixas — os escolhidos ficam em lima."""
-    contagem = catalogo["genero"].value_counts()
+    """Chips de gênero com a contagem de faixas — os escolhidos ficam em lima."""
+    contagem = contar_por_genero(catalogo)
     with container_com_chave("chips-generos"):
         for genero in generos:
             escolhido = genero in st.session_state.generos

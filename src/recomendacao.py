@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 
 from src import artefatos
+from src import generos as familias
 from src.dados import ATRIBUTOS, PESOS, PRECISAO_8, PERFIL_USUARIO, TETO_CONTA, VIBES
 from src.tema import LIMA, PERI, ROSA
 
@@ -52,7 +53,7 @@ def _do_genero(catalogo: pd.DataFrame, generos: Sequence[str]) -> pd.DataFrame:
     exibir, mas errada para filtrar: escolher "rock" perderia uma faixa cujos
     gêneros são ["alt-rock", "rock"]. Sem a lista, cai na coluna simples.
     """
-    procurados = set(generos)
+    procurados = familias.expandir(generos)
     if "generos" in catalogo.columns:
         pertence = catalogo["generos"].apply(
             lambda lista: bool(procurados & set(lista)))

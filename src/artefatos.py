@@ -48,16 +48,23 @@ COLUNAS = {
     "genero_primario": "genero",
 }
 
-# Cada mood herda a cor e a expressão da vibe correspondente do protótipo.
-# Duas trocas foram decididas pelo grupo: Treino recebe a expressão que era da
-# Melancolia (boca reta, que combina com techno constante) e Heavy recebe a
-# que era do Treino (boca aberta, que lê como grito).
+# Cor e expressão de cada mood, escolhidas pelo grupo olhando as fichas
+# renderizadas. As quatro vibes do protótipo tinham quatro ícones; com cinco
+# moods eles giraram:
+#
+#   Treino     mantém o próprio — braços pra cima e boca aberta é esforço
+#   Foco       herda o da Melancolia — sobrancelha suave e boca reta é
+#              concentração calma, e combina com ambient e piano
+#   Heavy      herda o do Foco — traço de sobrancelha com boca reta lê como
+#              cara fechada, que serve ao peso
+#   Aconchego  herda o do Chill, de quem também herdou o lugar
+#   Gingado    é o novo, e fica com a expressão feliz
 APRESENTACAO: dict[str, dict[str, str]] = {
-    "Foco":      {"cor": PERI,        "humor": "foco",   "desc": "estudar e trabalhar"},
-    "Aconchego": {"cor": LIMA,        "humor": "chill",  "desc": "leve e acústica"},
-    "Treino":    {"cor": AZUL_CLARO,  "humor": "triste", "desc": "batida constante"},
-    "Heavy":     {"cor": ROSA,        "humor": "treino", "desc": "peso e distorção"},
-    "Gingado":   {"cor": AZUL,        "humor": "feliz",  "desc": "pra dançar"},
+    "Foco":      {"cor": AZUL_CLARO, "humor": "triste", "desc": "estudar e trabalhar"},
+    "Aconchego": {"cor": LIMA,       "humor": "chill",  "desc": "leve e acústica"},
+    "Treino":    {"cor": ROSA,       "humor": "treino", "desc": "batida constante"},
+    "Heavy":     {"cor": PERI,       "humor": "foco",   "desc": "crua e visceral"},
+    "Gingado":   {"cor": AZUL,       "humor": "feliz",  "desc": "pra dançar"},
 }
 
 # Um artista só entra no seletor de referência se tiver catálogo de verdade —

@@ -13,7 +13,7 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
-from src import artefatos
+from src import artefatos, generos
 from src.tema import LIMA, PERI, ROSA
 
 ATRIBUTOS: tuple[str, ...] = (
@@ -124,14 +124,30 @@ def _chave_pt(texto: str) -> str:
 
 
 def listar_generos(catalogo: pd.DataFrame) -> list[str]:
-    """Os gêneros do catálogo, em ordem alfabética de português.
+    """As famílias de gênero que o seletor oferece.
 
-    Usa a lista completa de gêneros de cada faixa, não a coluna `genero` de
-    exibição: uma faixa pertence a vários gêneros, e o seletor deve oferecer
-    todos eles.
+    O dataset traz 114 `track_genre`, que é vocabulário de catálogo: 114
+    fichas não formam um seletor. O agrupamento em famílias está em
+    `src/generos.py`, e é ele que a interface mostra.
     """
-    if "generos" in catalogo.columns:
-        todos = {g for lista in catalogo["generos"] for g in lista}
-    else:
-        todos = set(catalogo["genero"].unique())
-    return sorted(todos, key=_chave_pt)
+    del catalogo  # a taxonomia é fixa, não depende do que veio no catálogo
+    return generos.familias()
+
+
+def contar_por_genero(catalogo: pd.DataFrame) -> dict[str, int]:
+    """Quantas faixas cada família de gênero tem.
+
+    Conta a lista completa de gêneros de cada faixa, não a coluna `genero`
+    (o primeiro em ordem alfabética): a contagem tem que casar com o que o
+    filtro devolve, senão o número na ficha mente sobre o resultado.
+    """
+    if "generos" not in catalogo.columns:
+        return catalogo["genero"].value_counts().to_dict()
+
+    contagem: dict[str, int] = {familia: 0 for familia in generos.familias()}
+    for lista in catalogo["generos"]:
+        # `set` para uma faixa em dois gêneros da mesma família contar uma vez
+        for familia in {generos.familia_de(g) for g in lista}:
+            if familia is not None:
+                contagem[familia] += 1
+    return contagem
