@@ -5,6 +5,8 @@ from __future__ import annotations
 import time
 
 import pandas as pd
+from typing import Any, Mapping
+
 import streamlit as st
 
 from src.dados import VIBES, contar_por_genero
@@ -27,6 +29,20 @@ def _grupo(titulo: str, nota: str) -> None:
     """Rótulo de um dos três grupos opcionais do passo 1."""
     bloco(f'<p class="gf-grupo">{titulo} <span>{nota}</span></p>')
 
+
+def _dica_vazia(resultado: Mapping[str, Any]) -> str:
+    """Dica do estado vazio, dizendo até quanto subir o slider.
+
+    Alguns gêneros deste catálogo só existem acima de certa popularidade, e a
+    dica genérica deixava a pessoa subindo o slider às cegas.
+    """
+    minimo = resultado.get("teto_minimo")
+    if minimo is None:
+        return ("Cavei fundo e não achei joia nenhuma com esses critérios — "
+                "nem subindo a popularidade. Tenta trocar os critérios do passo 1.")
+    return (f"Cavei fundo e não achei nada nessa profundidade. Aqui as joias "
+            f"começam em <b>{minimo}</b> de popularidade — sobe o slider do "
+            f"passo 2 até lá.")
 
 def _selecao_vibe() -> None:
     """Os 4 cards de vibe, um por coluna — o card inteiro é clicável, e alterna."""
@@ -148,5 +164,4 @@ def pagina_descobrir(catalogo: pd.DataFrame, artistas: pd.DataFrame,
     if st.session_state.res_desc:
         mostrar_resultados(
             st.session_state.res_desc, "desc",
-            dica_vazia="Cavei fundo e não achei nada aqui. Aumenta a popularidade "
-                       "máxima no passo 2 ou ajusta os critérios do passo 1.")
+            dica_vazia=_dica_vazia(st.session_state.res_desc))

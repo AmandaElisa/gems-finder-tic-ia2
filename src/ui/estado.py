@@ -12,7 +12,9 @@ PADROES: dict[str, Any] = {
     "vibes": [],
     "generos": [],
     "favoritos": [],
-    "teto": 18,
+    # 30 e nao 18: varias familias deste catalogo so tem faixa acima de 20, e
+    # o padrao baixo abria o app num estado vazio para elas.
+    "teto": 30,
     "res_desc": None,
     "pl_desc": None,
     "conectado": False,

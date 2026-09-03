@@ -184,6 +184,23 @@ def garimpar(base: pd.DataFrame, alvo: Mapping[str, float], teto: int,
             .head(limite).reset_index(drop=True))
 
 
+def teto_minimo_util(base: pd.DataFrame) -> int | None:
+    """Menor teto de popularidade que ainda devolve alguma joia neste universo.
+
+    Existe porque alguns gêneros deste catálogo não têm cauda obscura: os
+    quatro brasileiros só aparecem a partir de 23 a 43 de popularidade, então
+    na posição padrão do slider eles vêm sempre vazios. Dizer "aumenta a
+    popularidade" sem dizer até quanto deixa a pessoa tateando.
+
+    Devolve None quando não há faixa elegível nenhuma — aí subir o slider não
+    resolve, e a dica tem que ser outra.
+    """
+    elegiveis = elegiveis_para_garimpo(base)
+    if elegiveis.empty:
+        return None
+    return int(elegiveis["popularidade"].min())
+
+
 def cobertura(base: pd.DataFrame, teto: int) -> int:
     """% do universo elegível que passa no filtro de popularidade.
 
@@ -256,6 +273,7 @@ def montar_resultado(catalogo: pd.DataFrame, artistas: pd.DataFrame,
     alvo = media_de_vetores([criterio.alvo for criterio in criterios])
     achadas = garimpar(base, alvo, teto)
     return {
+        "teto_minimo": teto_minimo_util(base),
         "titulo": "Joias — " + " · ".join(c.titulo for c in criterios),
         "ctx": " e ".join(c.ctx for c in criterios),
         "precisao": precisao_combinada(len(criterios)),
