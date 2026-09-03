@@ -24,11 +24,6 @@ def round_js(valor: float) -> int:
     return math.floor(valor + 0.5)
 
 
-# Quanto cada ponto de popularidade abaixo de 30 vale no ranking. Vem do
-# protótipo e não foi calibrado.
-BONUS_POR_PONTO_DE_OBSCURIDADE = 0.15
-
-
 def match(faixa: Mapping[str, Any], alvo: Mapping[str, float]) -> int:
     """Afinidade sonora 31–99 entre uma faixa e um vetor-alvo, e só isso.
 
@@ -36,8 +31,12 @@ def match(faixa: Mapping[str, Any], alvo: Mapping[str, float]) -> int:
     componente de raridade. O bônus de obscuridade saiu daqui: ele dava pontos
     a uma faixa por ser impopular, não por soar parecida, e num app onde tudo é
     impopular por construção isso inflava o número que a usuária lê como
-    "afinidade". A obscuridade continua influenciando a ORDEM dos resultados,
-    em `pontuacao_de_garimpo`, que é onde ela deve agir.
+    "afinidade".
+
+    Cinco atributos não separam gênero, e esta função satura: para o perfil de
+    uma usuária real, 610 faixas do catálogo elegível empatam acima de 90%.
+    Por isso ela não decide sozinha o que aparece — quem estreita o universo é
+    o gênero da semente, em `garimpar_por_sementes`.
     """
     pesos = np.array([PESOS[a] for a in ATRIBUTOS])
     diferencas = np.abs(
@@ -46,18 +45,6 @@ def match(faixa: Mapping[str, Any], alvo: Mapping[str, float]) -> int:
     )
     distancia = float(np.dot(pesos, diferencas))
     return max(31, min(99, round_js(100 - distancia * 135)))
-
-
-def pontuacao_de_garimpo(faixa: Mapping[str, Any],
-                         alvo: Mapping[str, float]) -> float:
-    """Afinidade mais o bônus de raridade — decide a ordem, não a exibição.
-
-    Duas faixas igualmente parecidas com o alvo: a menos ouvida vem primeiro,
-    porque o produto é sobre descoberta. Mas o número mostrado no cartão segue
-    sendo a afinidade pura.
-    """
-    return match(faixa, alvo) + (
-        (30 - float(faixa["popularidade"])) * BONUS_POR_PONTO_DE_OBSCURIDADE)
 
 
 def media(faixas: pd.DataFrame) -> dict[str, float]:
@@ -196,19 +183,182 @@ def elegiveis_para_garimpo(base: pd.DataFrame) -> pd.DataFrame:
 
 def garimpar(base: pd.DataFrame, alvo: Mapping[str, float], teto: int,
              limite: int = 8) -> pd.DataFrame:
-    """Filtra por elegibilidade e popularidade <= teto, e ranqueia por match."""
+    """Filtra por elegibilidade e popularidade <= teto, e ranqueia por match.
+
+    A ordem é só afinidade. Havia aqui um bônus de 0,15 por ponto de
+    popularidade abaixo de 30 — até 4,5 pontos, mais que a distância inteira
+    entre o 1º e o 71º colocado. Como centenas de faixas empatam no topo do
+    match, era o bônus que escolhia as oito exibidas: o app ranqueava por
+    raridade e mostrava o número como se fosse afinidade. Foi assim que um
+    medley de festa infantil com 94% em popularidade 8 passou na frente de uma
+    faixa de 96%.
+
+    A obscuridade continua garantida por dois filtros que ninguém burla: a
+    coluna `elegivel` e o teto de popularidade. Ela não precisa também ganhar
+    os empates.
+    """
     base = elegiveis_para_garimpo(base)
     elegiveis = base[base["popularidade"] <= teto].copy()
     if elegiveis.empty:
         return elegiveis.assign(match=pd.Series(dtype="int64"))
-    linhas = list(elegiveis.iterrows())
-    elegiveis["match"] = [match(linha, alvo) for _, linha in linhas]
-    # A ordem usa a pontuação com bônus de raridade; a coluna `match` que a UI
-    # exibe fica sendo só a afinidade.
-    elegiveis["_ordem"] = [pontuacao_de_garimpo(linha, alvo) for _, linha in linhas]
+    elegiveis["match"] = [match(linha, alvo) for _, linha in elegiveis.iterrows()]
     # kind="stable" preserva a ordem do catálogo nos empates, como o sort do JS.
-    return (elegiveis.sort_values("_ordem", ascending=False, kind="stable")
-            .head(limite).drop(columns="_ordem").reset_index(drop=True))
+    return (elegiveis.sort_values("match", ascending=False, kind="stable")
+            .head(limite).reset_index(drop=True))
+
+
+class Semente(NamedTuple):
+    """Uma referência concreta de gosto, e o vocabulário em que ela procura.
+
+    O contrário de um centroide: uma semente é *uma* faixa que a pessoa ouve
+    ou *um* artista que ela escolheu, não a média de tudo junto. A média de
+    oito faixas espalhadas por quatro moods cai num ponto que não é nenhuma
+    delas — medido: a faixa `Promise`, do Ben Howard, fica a 2,01 de distância
+    do próprio centroide que ajudou a formar.
+    """
+
+    alvo: dict[str, float]
+    rotulo: str                        # "Only Love", "blink-182"
+    generos: tuple[str, ...] = ()      # gêneros crus; vazio = não estreita
+
+
+def _pool_da_semente(base: pd.DataFrame, semente: Semente,
+                     nivel_minimo: int = 0) -> pd.DataFrame:
+    """Candidatas de uma semente, do vocabulário mais estreito ao mais largo.
+
+    A cascata existe porque nem todo gênero deste catálogo tem cauda obscura:
+    os brasileiros só começam entre 23 e 43 de popularidade, então um gênero
+    pequeno pode não ter joia nenhuma abaixo do teto.
+
+    1. Os gêneros crus da própria semente. É o único nível que separa
+       `punk-rock` de `j-idol`, cujos vetores de áudio ficam a três pontos um
+       do outro.
+    2. As famílias desses gêneros. Mais largo — "Eletrônica" guarda dubstep e
+       trance juntos —, mas ainda dentro do mesmo território.
+    3. O universo inteiro. Último recurso, decidido pelo grupo para que a tela
+       nunca devolva menos de oito joias. É o nível que pode trazer faixa de
+       gênero distante, e o grupo aceitou a troca sabendo disso.
+
+    `nivel_minimo` começa a cascata mais larga de propósito: é assim que o
+    complemento do garimpo pede o nível 1 (família) depois de já ter usado o
+    nível 0 (gênero cru). Alargar a cascata para *todas* as sementes só porque
+    faltaram joias foi tentado e medido: derrubou a precisão de gênero de 8/8
+    para 1/8 e trouxe `j-dance` de volta. Cada semente continua estrita; quem
+    completa o número é `_completar`.
+    """
+    if not semente.generos or "generos" not in base.columns:
+        return base
+    niveis = (set(semente.generos),
+              familias.expandir(sorted({f for g in semente.generos
+                                        if (f := familias.familia_de(g))})))
+    for procurados in niveis[nivel_minimo:]:
+        if not procurados:
+            continue
+        pool = base[base["generos"].apply(
+            lambda lista: bool(procurados & set(lista)))]
+        if not pool.empty:
+            return pool
+    return base
+
+
+def _completar(base: pd.DataFrame, sementes: Sequence[Semente],
+               escolhidas: list[pd.Series], vistas: set[Any],
+               limite: int) -> None:
+    """Preenche o que faltou para chegar a `limite`, alargando aos poucos.
+
+    O grupo decidiu que a tela nunca devolve menos de oito joias. Quando os
+    gêneros das sementes não têm cauda obscura suficiente, o complemento vem
+    primeiro das famílias e só então do universo inteiro — e cada faixa entra
+    com a semente de quem melhor combina com ela, para o cartão continuar
+    dizendo de onde veio.
+    """
+    for nivel in (1, 2):
+        if len(escolhidas) >= limite:
+            return
+        pools = [_pool_da_semente(base, s, nivel_minimo=nivel)
+                 for s in sementes] if nivel == 1 else [base]
+        # Desduplica pelo índice, não pelas colunas: `generos` é uma lista, e
+        # drop_duplicates não sabe comparar lista.
+        candidatas = pd.concat(pools)
+        candidatas = candidatas[~candidatas.index.duplicated()]
+        if candidatas.empty:
+            continue
+        # Cada candidata vale o quanto vale para a semente mais próxima dela.
+        melhores = [max(((match(linha, s.alvo), s.rotulo) for s in sementes),
+                        key=lambda par: par[0])
+                    for _, linha in candidatas.iterrows()]
+        candidatas = candidatas.copy()
+        candidatas["match"] = [m for m, _ in melhores]
+        candidatas["semente"] = [r for _, r in melhores]
+        for _, linha in candidatas.sort_values(
+                "match", ascending=False, kind="stable").iterrows():
+            if len(escolhidas) >= limite:
+                return
+            chave = linha.get("track_id", (linha["faixa"], linha["artista"]))
+            if chave in vistas:
+                continue
+            vistas.add(chave)
+            escolhidas.append(linha)
+
+
+def _vazio_com_semente(base: pd.DataFrame) -> pd.DataFrame:
+    """Zero linhas, com as colunas que a UI lê sem checar antes."""
+    return base.iloc[0:0].assign(match=pd.Series(dtype="int64"),
+                                 semente=pd.Series(dtype="object"))
+
+
+def garimpar_por_sementes(base: pd.DataFrame, sementes: Sequence[Semente],
+                          teto: int, limite: int = 8) -> pd.DataFrame:
+    """Vizinhos de cada semente, intercalados — não vizinhos da média delas.
+
+    Cada semente procura no próprio vocabulário e ranqueia por afinidade com o
+    próprio vetor. Depois as listas são intercaladas em rodízio, para que as
+    oito joias cubram a amplitude de quem ouve, em vez de serem oito variações
+    da faixa mais representativa dela.
+
+    Devolve a coluna `semente` com o rótulo de quem trouxe cada joia, que a UI
+    exibe: saber que uma faixa entrou "porque você ouve Only Love" transforma
+    uma recomendação ruim em algo legível, em vez de misteriosa.
+    """
+    base = elegiveis_para_garimpo(base)
+    base = base[base["popularidade"] <= teto]
+    if base.empty or not sementes:
+        return _vazio_com_semente(base)
+
+    filas: list[list[pd.Series]] = []
+    for semente in sementes:
+        pool = _pool_da_semente(base, semente).copy()
+        if pool.empty:
+            continue
+        pool["match"] = [match(linha, semente.alvo)
+                         for _, linha in pool.iterrows()]
+        pool["semente"] = semente.rotulo
+        ordenada = pool.sort_values("match", ascending=False, kind="stable")
+        filas.append([linha for _, linha in ordenada.head(limite).iterrows()])
+
+    # Rodízio: a melhor de cada semente, depois a segunda melhor de cada.
+    escolhidas: list[pd.Series] = []
+    vistas: set[Any] = set()
+    for rodada in range(limite):
+        for fila in filas:
+            if len(escolhidas) >= limite:
+                break
+            if rodada >= len(fila):
+                continue
+            linha = fila[rodada]
+            chave = linha.get("track_id", (linha["faixa"], linha["artista"]))
+            if chave in vistas:
+                continue
+            vistas.add(chave)
+            escolhidas.append(linha)
+        if len(escolhidas) >= limite:
+            break
+    # As sementes procuram estrito; se faltou, o complemento alarga.
+    if len(escolhidas) < limite:
+        _completar(base, sementes, escolhidas, vistas, limite)
+    if not escolhidas:
+        return _vazio_com_semente(base)
+    return pd.DataFrame(escolhidas).reset_index(drop=True)
 
 
 def teto_minimo_util(base: pd.DataFrame) -> int | None:
@@ -302,7 +452,13 @@ def montar_resultado(catalogo: pd.DataFrame, artistas: pd.DataFrame,
         raise ValueError("montar_resultado needs at least one active criterion")
 
     alvo = media_de_vetores([criterio.alvo for criterio in criterios])
-    achadas = garimpar(base, alvo, teto)
+    # Artistas escolhidos viram sementes: cada um procura nos próprios
+    # gêneros, e a média entre dois artistas distantes deixa de ser o alvo.
+    # Sem artista escolhido não há semente e a busca segue como sempre foi —
+    # vibe é a média medida de um cluster, então ali o centroide é honesto.
+    sementes = sementes_de_artistas(catalogo, artistas, favoritos)
+    achadas = (garimpar_por_sementes(base, sementes, teto) if sementes
+               else garimpar(base, alvo, teto))
     return {
         "teto_minimo": teto_minimo_util(base),
         "titulo": "Joias — " + " · ".join(c.titulo for c in criterios),
@@ -332,6 +488,10 @@ class PerfilDoUsuario(NamedTuple):
     e_real: bool          # False quando caiu no perfil de exemplo
     origem: str = "exemplo"   # "faixas" | "generos" | "exemplo"
     generos_usados: tuple[str, ...] = ()
+    # As faixas cruzadas, uma a uma. O `alvo` acima segue existindo porque a
+    # tela desenha as barras do perfil a partir dele; a recomendação usa
+    # estas, que preservam o que a média destrói.
+    sementes: tuple[Semente, ...] = ()
 
 
 def perfil_do_usuario(catalogo: pd.DataFrame,
@@ -356,10 +516,11 @@ def perfil_do_usuario(catalogo: pd.DataFrame,
     else:
         encontradas = catalogo.iloc[0:0]
 
-    # 1. Caminho bom: média das faixas que a pessoa ouve e nós temos.
+    # 1. Caminho bom: cada faixa que a pessoa ouve e nós temos vira semente.
     if len(encontradas) >= MINIMO_DE_FAIXAS_CRUZADAS:
         return PerfilDoUsuario(media(encontradas), len(encontradas), pedidas,
-                               True, "faixas")
+                               True, "faixas",
+                               sementes=sementes_de_faixas(encontradas))
 
     # 2. Rede: os gêneros dos artistas favoritos, aproximados pelo centroide
     #    deles no catálogo. Menos preciso, e a tela diz que foi por aqui.
@@ -371,6 +532,39 @@ def perfil_do_usuario(catalogo: pd.DataFrame,
     # 3. Sem nada em que se apoiar: exemplo, dito como exemplo.
     return PerfilDoUsuario(dict(PERFIL_USUARIO), len(encontradas), pedidas,
                            False, "exemplo")
+
+
+def sementes_de_faixas(faixas: pd.DataFrame) -> tuple[Semente, ...]:
+    """Uma semente por faixa do catálogo — o vetor e os gêneros de cada uma."""
+    saida: list[Semente] = []
+    for _, linha in faixas.iterrows():
+        generos = tuple(linha["generos"]) if "generos" in faixas.columns else ()
+        saida.append(Semente({a: float(linha[a]) for a in ATRIBUTOS},
+                             str(linha["faixa"]), generos))
+    return tuple(saida)
+
+
+def sementes_de_artistas(catalogo: pd.DataFrame, artistas: pd.DataFrame,
+                         favoritos: Sequence[str]) -> tuple[Semente, ...]:
+    """Uma semente por artista escolhido, com os gêneros do catálogo dele.
+
+    Os gêneros vêm das faixas do artista no catálogo, não da coluna `genero`
+    da tabela de artistas: aquela guarda um rótulo só, e um artista costuma
+    ocupar vários gêneros vizinhos que servem de vocabulário de busca.
+    """
+    escolhidos = artistas[artistas["artista"].isin(list(favoritos))]
+    saida: list[Semente] = []
+    for _, linha in escolhidos.iterrows():
+        nome = str(linha["artista"])
+        generos: tuple[str, ...] = ()
+        if "generos" in catalogo.columns:
+            dele = catalogo[catalogo["artista"].str.contains(
+                nome, regex=False, na=False)]
+            generos = tuple(sorted({g for lista in dele["generos"]
+                                    for g in lista}))
+        saida.append(Semente({a: float(linha[a]) for a in ATRIBUTOS},
+                             nome, generos))
+    return tuple(saida)
 
 
 def _centroide_dos_generos(catalogo: pd.DataFrame,
@@ -418,10 +612,17 @@ def montar_resultado_conta(catalogo: pd.DataFrame,
     """Garimpo do modo testador: cruza o perfil do usuário com o catálogo."""
     if perfil is None:
         perfil = PerfilDoUsuario(dict(PERFIL_USUARIO), 0, 0, False)
-    achadas = garimpar(catalogo, perfil.alvo, TETO_CONTA)
+    # Com faixas cruzadas, cada uma procura no próprio território. Sem elas
+    # (perfil por gênero ou de exemplo) só resta o centroide.
+    if perfil.sementes:
+        achadas = garimpar_por_sementes(catalogo, perfil.sementes, TETO_CONTA)
+        ctx = "ela é vizinha de uma das suas mais ouvidas"
+    else:
+        achadas = garimpar(catalogo, perfil.alvo, TETO_CONTA)
+        ctx = "ela combina com o perfil médio das suas mais ouvidas"
     return {
         "titulo": "Joias pra você",
-        "ctx": "ela combina com o perfil médio das suas mais ouvidas",
+        "ctx": ctx,
         "cobertura": cobertura(catalogo, TETO_CONTA),
         "faixas": achadas.to_dict("records"),
         "media_match": round_js(achadas["match"].mean()) if len(achadas) else 0,

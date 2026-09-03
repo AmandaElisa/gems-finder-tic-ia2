@@ -23,7 +23,8 @@ from src.recomendacao import (
     humor_da_faixa,
     match,
     perfil_do_usuario,
-    pontuacao_de_garimpo,
+    garimpar_por_sementes,
+    Semente,
     media_de_vetores,
     descrever_perfil,
     montar_resultado,
@@ -43,9 +44,9 @@ NEUTRAL: dict[str, float] = {atributo: .5 for atributo in ATRIBUTOS}
 def track(popularidade: int = 30, **atributos: float) -> dict[str, float]:
     """A track with neutral audio attributes, overridable one by one.
 
-    Popularity defaults to 30, the value at which match()'s obscurity bonus is
-    exactly zero — so a test that does not care about popularity gets no bonus
-    silently skewing its expected score.
+    Popularity defaults to 30, which is the top of the recommendable range —
+    a test that does not care about popularity gets a track that is eligible
+    without being at either extreme.
     """
     return {**NEUTRAL, **atributos, "popularidade": popularidade}
 
@@ -89,25 +90,143 @@ class TestMatch:
         assert match(track(popularidade=0), alvo) == 93
 
 
-class TestPontuacaoDeGarimpo:
-    """A raridade decide a ordem, não o número exibido."""
+class TestRarityDoesNotRank:
+    """Ser impopular não compra posição — a obscuridade é filtro, não bônus.
 
-    def test_equals_the_match_at_the_neutral_popularity(self) -> None:
-        alvo = {**NEUTRAL, "energia": .7}
-        faixa = track(popularidade=30)
-        assert pontuacao_de_garimpo(faixa, alvo) == pytest.approx(match(faixa, alvo))
+    O bônus antigo somava 0,15 por ponto abaixo de 30, até 4,5 pontos. Como
+    centenas de faixas empatam no topo do match, era ele quem escolhia as oito
+    exibidas, e ele seleciona o que há de mais estranho no catálogo.
+    """
 
-    def test_the_obscure_track_outranks_an_equally_similar_one(self) -> None:
-        alvo = {**NEUTRAL, "energia": .7}
-        obscura, conhecida = track(popularidade=10), track(popularidade=30)
-        assert match(obscura, alvo) == match(conhecida, alvo)      # mesmo som
-        assert pontuacao_de_garimpo(obscura, alvo) > pontuacao_de_garimpo(conhecida, alvo)
+    def test_the_closer_track_wins_even_when_it_is_more_popular(self) -> None:
+        alvo = {**NEUTRAL, "energia": 1.0}
+        base = catalog(
+            {**track(popularidade=1, energia=.5), "faixa": "obscura e distante"},
+            {**track(popularidade=29, energia=.95), "faixa": "conhecida e perto"},
+        )
+        assert list(garimpar(base, alvo, teto=30)["faixa"])[0] == "conhecida e perto"
 
-    def test_the_bonus_is_fifteen_hundredths_per_point(self) -> None:
+    def test_equally_similar_tracks_keep_catalog_order(self) -> None:
         alvo = {**NEUTRAL, "energia": .7}
-        faixa = track(popularidade=10)
-        assert pontuacao_de_garimpo(faixa, alvo) == pytest.approx(
-            match(faixa, alvo) + 20 * 0.15)
+        base = catalog(
+            {**track(popularidade=30), "faixa": "primeira"},
+            {**track(popularidade=1), "faixa": "mais obscura"},
+        )
+        assert list(garimpar(base, alvo, teto=30)["faixa"]) == [
+            "primeira", "mais obscura"]
+
+
+def seed(rotulo: str, *generos: str, **atributos: float) -> Semente:
+    """A seed at the neutral point, with the given genres and overrides."""
+    return Semente({**NEUTRAL, **atributos}, rotulo, generos)
+
+
+class TestGarimparPorSementes:
+    """Vizinhos de cada semente, não vizinhos da média das sementes.
+
+    O defeito que isto conserta: as oito faixas mais ouvidas de uma usuária
+    real caíam em quatro moods diferentes, e a média delas era um ponto que
+    não era nenhuma delas — o app recomendava j-idol e festa infantil para
+    quem ouve blink-182 e Ben Howard.
+    """
+
+    def test_each_seed_searches_inside_its_own_genres(self) -> None:
+        base = catalog(
+            {**track(popularidade=5), "faixa": "punk gem",
+             "artista": "X", "generos": ["punk"]},
+            {**track(popularidade=5), "faixa": "folk gem",
+             "artista": "Y", "generos": ["folk"]},
+        )
+        # limite=1: o gênero da semente já tem candidatas suficientes, então a
+        # cascata não precisa alargar e a folk fica de fora.
+        achadas = garimpar_por_sementes(
+            base, [seed("blink", "punk")], teto=30, limite=1)
+        assert list(achadas["faixa"]) == ["punk gem"]
+
+    def test_widens_when_the_genre_has_fewer_gems_than_asked_for(self) -> None:
+        # Não basta o gênero ter alguma coisa: com uma joia punk e oito
+        # pedidas, parar no punk devolveria uma só. Sobe de nível.
+        base = catalog(
+            {**track(popularidade=5), "faixa": "punk gem",
+             "artista": "X", "generos": ["punk"]},
+            {**track(popularidade=5), "faixa": "folk gem",
+             "artista": "Y", "generos": ["folk"]},
+        )
+        achadas = garimpar_por_sementes(
+            base, [seed("blink", "punk")], teto=30, limite=8)
+        assert len(achadas) == 2
+
+    def test_the_average_would_have_missed_what_the_seeds_find(self) -> None:
+        # Duas sementes opostas. A média delas é o ponto neutro, e a faixa
+        # neutra ganharia do que cada semente realmente procura.
+        base = catalog(
+            {**track(popularidade=5, energia=.95), "faixa": "energética",
+             "artista": "A", "generos": ["punk"]},
+            {**track(popularidade=5, energia=.05), "faixa": "calma",
+             "artista": "B", "generos": ["folk"]},
+            {**track(popularidade=5, energia=.50), "faixa": "morna",
+             "artista": "C", "generos": ["punk", "folk"]},
+        )
+        sementes = [seed("alta", "punk", energia=1.0),
+                    seed("baixa", "folk", energia=0.0)]
+        achadas = garimpar_por_sementes(base, sementes, teto=30, limite=2)
+        assert set(achadas["faixa"]) == {"energética", "calma"}
+        assert "morna" not in list(achadas["faixa"])
+
+    def test_interleaves_so_every_seed_is_represented(self) -> None:
+        base = catalog(*(
+            [{**track(popularidade=5), "faixa": f"p{i}", "artista": "A",
+              "generos": ["punk"]} for i in range(5)]
+            + [{**track(popularidade=5), "faixa": f"f{i}", "artista": "B",
+                "generos": ["folk"]} for i in range(5)]
+        ))
+        achadas = garimpar_por_sementes(
+            base, [seed("um", "punk"), seed("dois", "folk")],
+            teto=30, limite=4)
+        # Rodízio: uma de cada, uma de cada — não quatro da primeira.
+        assert list(achadas["semente"]) == ["um", "dois", "um", "dois"]
+
+    def test_records_which_seed_brought_each_gem(self) -> None:
+        base = catalog({**track(popularidade=5), "faixa": "A", "artista": "X",
+                        "generos": ["punk"]})
+        achadas = garimpar_por_sementes(
+            base, [seed("Only Love", "punk")], teto=30, limite=8)
+        assert list(achadas["semente"]) == ["Only Love"]
+
+    def test_never_repeats_a_track_across_seeds(self) -> None:
+        base = catalog({**track(popularidade=5), "faixa": "única",
+                        "artista": "X", "generos": ["punk", "folk"]})
+        achadas = garimpar_por_sementes(
+            base, [seed("um", "punk"), seed("dois", "folk")],
+            teto=30, limite=8)
+        assert len(achadas) == 1
+
+    def test_falls_back_to_the_whole_universe_when_the_genre_is_empty(self) -> None:
+        # Decisão do grupo: a tela nunca devolve menos de oito por falta de
+        # cauda obscura no gênero. O nível 3 é largo de propósito.
+        base = catalog({**track(popularidade=5), "faixa": "distante",
+                        "artista": "X", "generos": ["techno"]})
+        achadas = garimpar_por_sementes(
+            base, [seed("semente", "genero-que-nao-existe")],
+            teto=30, limite=8)
+        assert list(achadas["faixa"]) == ["distante"]
+
+    def test_respects_the_ceiling_and_the_limit(self) -> None:
+        base = catalog(*[
+            {**track(popularidade=5 if i < 3 else 90), "faixa": f"t{i}",
+             "artista": "A", "generos": ["punk"]} for i in range(6)
+        ])
+        achadas = garimpar_por_sementes(
+            base, [seed("s", "punk")], teto=30, limite=2)
+        assert len(achadas) == 2
+        assert (achadas["popularidade"] <= 30).all()
+
+    def test_no_seeds_gives_an_empty_frame_with_the_expected_columns(self) -> None:
+        base = catalog({**track(popularidade=5), "faixa": "A", "artista": "X",
+                        "generos": ["punk"]})
+        achadas = garimpar_por_sementes(base, [], teto=30)
+        assert achadas.empty
+        assert {"match", "semente"} <= set(achadas.columns)
 
 
 class TestMediaDeVetores:

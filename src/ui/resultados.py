@@ -14,6 +14,20 @@ from src.ui.componentes import (barras_atributos_html, bloco, cartao,
 from src.ui.mascote import mascote
 
 
+def _porque(faixa: Mapping[str, Any], ctx: str) -> str:
+    """Por que esta joia apareceu — a semente concreta, quando existe.
+
+    Nomear a faixa ou o artista que puxou a recomendação é grátis: quem
+    garimpa por sementes já sabe quem foi. E é o que permite julgar o
+    resultado, em vez de aceitar um número. Sem semente, a explicação
+    continua sendo o critério geral da busca.
+    """
+    semente = faixa.get("semente")
+    if semente:
+        return f"Entrou por causa de <b>{semente}</b>"
+    return f"Entrou porque {ctx}"
+
+
 def mostrar_resultados(resultado: Mapping[str, Any], espaco: str, dica_vazia: str) -> None:
     """Métricas do modelo, cards das joias e o gerador de playlist."""
     if not resultado["faixas"]:
@@ -31,7 +45,7 @@ def mostrar_resultados(resultado: Mapping[str, Any], espaco: str, dica_vazia: st
                 bloco(gema_topo_html(faixa))
                 with st.expander("Ver atributos de áudio"):
                     bloco(barras_atributos_html(faixa)
-                          + f'<p class="gf-why">Entrou porque {resultado["ctx"]} — e só '
+                          + f'<p class="gf-why">{_porque(faixa, resultado["ctx"])} — e só '
                             f'{faixa["popularidade"]} de 100 no índice de popularidade.</p>')
 
     # A playlist exige conta conectada, então mora na aba Minha conta. Aqui
