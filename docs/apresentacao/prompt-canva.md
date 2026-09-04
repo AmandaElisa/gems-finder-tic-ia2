@@ -78,8 +78,10 @@ Slide 7 — Qualidade dos dados: três achados
 Três cartões:
 (a) 9.347 faixas com popularidade 0 — significa "não capturada", não "sem
 ouvintes". Descoberto pelo padrão [0, 0, 44] em faixas do Arctic Monkeys.
-(b) 157 faixas com tempo=0 E dançabilidade=0 juntos — falha do detector de
-batida em música ambiente e guitarra solo. Imputadas pela mediana do gênero.
+(b) 157 faixas com tempo=0 E dançabilidade=0 SEMPRE juntos, nunca separados
+— e nenhuma faixa do dataset tem uma condição sem a outra. É falha de
+análise, não música calma: o gênero "sleep" tem dançabilidade mediana 0,161,
+e a energia mediana dessas 157 é 0,001. Imputadas pela mediana do gênero.
 (c) Faixa marcada em mais gêneros é mais energética (0,630 → 0,726) e muito
 menos instrumental (0,189 → 0,032).
 

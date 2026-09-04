@@ -63,12 +63,27 @@ ausência de execuções. Por isso a agregação usa `max`, e as faixas em zero
 são excluídas de qualquer cálculo de mediana ou percentil.
 
 **Imputação de medições inválidas.** Identificaram-se 157 faixas com
-`tempo = 0` **e** `danceability = 0` simultaneamente — combinação
-concentrada em música ambiente e violão solo, característica de falha do
-detector de batida. Zero BPM não descreve uma música lenta: descreve uma
-medição que não ocorreu. Os valores foram imputados pela mediana do gênero
-(89,9 BPM e 0,198), decisão registrada no notebook em comparação com as
-alternativas de descarte, *capping* e transformação.
+`tempo = 0` **e** `danceability = 0` simultaneamente, concentradas no gênero
+`sleep` (138 das 157).
+
+A hipótese de que se trate de valor legítimo — música para dormir tem, de
+fato, baixa dançabilidade — foi testada e rejeitada por três evidências:
+
+1. **As condições nunca ocorrem separadas.** Não há no dataset uma única
+   faixa com `tempo = 0` e `danceability` válida, nem o inverso. Fossem
+   valores legítimos, esperar-se-ia dançabilidade nula acompanhada de
+   andamento medido.
+2. **O gênero `sleep` não tem dançabilidade nula por natureza:** sua mediana
+   é 0,161. É baixa, como se espera, mas não zero — e os 138 zeros do gênero
+   são exatamente as 138 faixas com `tempo = 0`.
+3. **A `energy` mediana dessas faixas é 0,001.** Três atributos colapsam para
+   zero simultaneamente, o que caracteriza ausência de análise e não silêncio
+   medido.
+
+Zero BPM, por fim, não descreve música lenta: descreve medição que não
+ocorreu. Os valores foram imputados pela mediana do gênero (89,9 BPM e
+0,198), decisão registrada no notebook em comparação com as alternativas de
+descarte, *capping* e transformação.
 
 **Seleção de features.** Foram extraídos os atributos numéricos que definem o
 "DNA" técnico das faixas e aplicadas **sete técnicas de filtro**:
@@ -232,3 +247,4 @@ codifica: emergiu da coocorrência de gêneros no dataset.
 | **2.4** "Serialização via **joblib**" | O `joblib` é exportado, mas a aplicação lê `modelo.json`; um `joblib` em `requirements.txt` já quebrou um *deploy* | Descrito o que a aplicação efetivamente carrega |
 | "a arquitetura foi **planned**" | Termo em inglês no texto em português | "a arquitetura adotada é" |
 | Ausente | A validação de K, a deduplicação, a imputação e a representação aprendida não constavam | Seções 2.2, 2.3 e 2.6 |
+| "falha ... para músicas estilo Ambient/Sleep" | Afirmação sem evidência, e a objeção é pertinente: música para dormir tem baixa dançabilidade por natureza | Substituída pelas três evidências que sustentam a leitura de falha — coocorrência perfeita das condições, mediana 0,161 do gênero `sleep` e `energy` mediana 0,001 |
