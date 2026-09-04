@@ -282,8 +282,8 @@ class TestUniversoComFamilias:
     def test_a_family_name_expands_to_its_genres(self) -> None:
         from src import generos
 
-        expandido = generos.expandir("MPB, samba, pagode e bossa nova")
-        assert expandido == {"mpb", "brazil", "samba", "pagode"}
+        assert generos.expandir("MPB e bossa nova") == {"mpb", "brazil"}
+        assert generos.expandir("Samba e pagode") == {"samba", "pagode"}
 
     def test_a_raw_genre_passes_through_unchanged(self) -> None:
         from src import generos
@@ -300,7 +300,7 @@ class TestUniversoComFamilias:
             {**track(), "faixa": "B", "generos": ["techno"], "genero": "techno"},
         )
         # A pessoa clicou na ficha da família; a faixa está como "samba".
-        assert list(universo(base, ["MPB, samba, pagode e bossa nova"])["faixa"]) == ["A"]
+        assert list(universo(base, ["Samba e pagode"])["faixa"]) == ["A"]
 
 
 class TestCriteriosAtivos:

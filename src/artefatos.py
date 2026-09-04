@@ -106,10 +106,17 @@ NAO_SAO_GENEROS = {"piano", "guitar", "chill", "sad", "happy", "study",
 # para arrastar música de qualquer estilo para dentro delas: uma busca por
 # Indie devolvia três faixas francesas em oito.
 #
-# `indian`, `iranian`, `turkish`, `samba`, `forro`, `j-idol` e `k-pop` NÃO
-# entram aqui, e a diferença é de conteúdo, não de forma: elas nomeiam
-# tradições sonoras próprias, e o grupo construiu famílias inteiras em cima
-# delas. "Francês" não é um som; "forró" é.
+# O critério NÃO é a etiqueta, é a família que a recebe. Nacionalidade pode
+# definir pertencimento numa família que já é **regional** — Latina, MPB e
+# bossa nova, Samba e pagode, Forró, Sertanejo, Índia e Oriente —, porque ali
+# a origem é o próprio critério de agrupamento e é o que a pessoa quer ao
+# clicar na ficha. Não pode numa família de **estilo** — Rock, Pop, Indie —,
+# onde origem é ruído. `french` dentro de Indie era erro; `brazil` dentro de
+# MPB não é.
+#
+# Por isso `brazil`, `spanish`, `latin`, `indian`, `iranian`, `turkish`,
+# `j-idol` e `k-pop` ficam de fora desta lista: todas moram em famílias
+# regionais. As quatro daqui moravam em famílias de estilo.
 #
 # Medido, e registrado porque é a terceira vez que a tentação aparece: nem
 # IDF nem entropia de co-ocorrência separam esta lista do resto. O dataset é
