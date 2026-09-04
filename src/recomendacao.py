@@ -724,6 +724,9 @@ class PerfilDoUsuario(NamedTuple):
     # tela desenha as barras do perfil a partir dele; a recomendação usa
     # estas, que preservam o que a média destrói.
     sementes: tuple[Semente, ...] = ()
+    # Onde as faixas cruzadas caem no eixo da popularidade. None quando não há
+    # base para a leitura — perfil de exemplo, ou poucas faixas cruzadas.
+    raridade: "GostoDeRaridade | None" = None
 
 
 def perfil_do_usuario(catalogo: pd.DataFrame,
@@ -752,7 +755,8 @@ def perfil_do_usuario(catalogo: pd.DataFrame,
     if len(encontradas) >= MINIMO_DE_FAIXAS_CRUZADAS:
         return PerfilDoUsuario(media(encontradas), len(encontradas), pedidas,
                                True, "faixas",
-                               sementes=sementes_de_faixas(encontradas))
+                               sementes=sementes_de_faixas(encontradas),
+                               raridade=gosto_de_raridade(catalogo, encontradas))
 
     # 2. Rede: os gêneros dos artistas favoritos, aproximados pelo centroide
     #    deles no catálogo. Menos preciso, e a tela diz que foi por aqui.
@@ -828,6 +832,63 @@ def _centroide_dos_generos(catalogo: pd.DataFrame,
         return None, ()
     presentes = {str(g).lower() for lista in faixas[coluna] for g in lista}
     return media(faixas), tuple(sorted(procurados & presentes))
+
+
+# Quartis da popularidade do catálogo, ignorando as faixas em 0 — que são
+# dado não capturado, não música sem ouvintes. São os limites do selo, e vêm
+# da forma do catálogo em vez de números redondos que alguém escolheu.
+QUARTIS_DE_POPULARIDADE = (22, 37, 50)
+
+# Do mais escondido ao mais conhecido, na ordem dos quartis acima. O selo
+# descreve as FAIXAS, não a pessoa: com oito faixas cruzadas de cinquenta,
+# "você é um garimpeiro nato" seria horóscopo, e "suas faixas são mais
+# escondidas que 78% do catálogo" é medição.
+SELOS_DE_GOSTO: tuple[tuple[str, str], ...] = (
+    ("Garimpeiro de raridade", "suas faixas vivem na parte escondida do catálogo"),
+    ("Fora do óbvio",          "você já ouve longe do que toca no rádio"),
+    ("Um pé no mainstream",    "metade conhecida, metade escondida"),
+    ("Fã de hits",             "você ouve o que muita gente ouve, então tem joia esperando"),
+)
+
+
+class GostoDeRaridade(NamedTuple):
+    """Onde as faixas cruzadas de alguém caem no eixo da popularidade."""
+
+    selo: str
+    descricao: str
+    popularidade: int      # mediana das faixas cruzadas
+    percentil: int         # % do catálogo abaixo dessa mediana
+    faixas_usadas: int     # quantas entraram na conta
+
+
+def gosto_de_raridade(catalogo: pd.DataFrame,
+                      encontradas: pd.DataFrame) -> GostoDeRaridade | None:
+    """Lê o quão fora do comum são as faixas que a pessoa já ouve.
+
+    Mediana, não média: são poucas faixas, e um hit solto no meio delas não
+    deve mover a leitura.
+
+    Faixas em popularidade 0 saem da conta. É a mesma decisão que o notebook
+    tomou ao agregar com `max`: zero significa não capturado, e contá-lo
+    entregaria um selo de raridade conquistado por falha nossa.
+
+    Devolve None quando não há base — sem faixas cruzadas não há leitura, e
+    inventar uma violaria o princípio 2 da constituição.
+    """
+    if encontradas.empty or "popularidade" not in encontradas.columns:
+        return None
+    validas = encontradas[encontradas["popularidade"] > 0]
+    if len(validas) < MINIMO_DE_FAIXAS_CRUZADAS:
+        return None
+
+    mediana = float(validas["popularidade"].median())
+    catalogo_valido = catalogo[catalogo["popularidade"] > 0]["popularidade"]
+    percentil = float((catalogo_valido < mediana).mean() * 100)
+
+    posicao = sum(mediana > limite for limite in QUARTIS_DE_POPULARIDADE)
+    selo, descricao = SELOS_DE_GOSTO[posicao]
+    return GostoDeRaridade(selo, descricao, round_js(mediana),
+                           round_js(percentil), len(validas))
 
 
 def descrever_perfil(alvo: Mapping[str, float]) -> str:

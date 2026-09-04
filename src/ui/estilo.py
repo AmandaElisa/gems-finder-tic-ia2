@@ -212,6 +212,11 @@ hr{border-color:rgba(20,20,20,.15);}
 .gf-top{background:#fff;border:2px solid var(--tinta);border-radius:99px;padding:7px 15px;
   font-size:13px;font-weight:700;}
 .gf-top s{text-decoration:none;color:var(--mute);font-weight:500;}
+/* selo de quão fora do comum são as faixas cruzadas, no cartão do perfil */
+.gf-gosto{margin-top:18px;padding-top:16px;border-top:2px dashed rgba(20,20,20,.2);
+  display:flex;gap:12px;align-items:flex-start;}
+.gf-gosto .gf-pill{flex:none;}
+.gf-gosto .gf-help{margin:2px 0 0;}
 .gf-perm{margin:14px 0 4px;padding:0;list-style:none;}
 .gf-perm li{font-size:13.5px;color:var(--mute);padding-left:24px;position:relative;margin-bottom:5px;}
 .gf-perm li:before{content:"✓";position:absolute;left:0;color:var(--verde-esc);font-weight:800;}

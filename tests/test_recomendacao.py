@@ -229,6 +229,61 @@ class TestGarimparPorSementes:
         assert {"match", "semente"} <= set(achadas.columns)
 
 
+class TestGostoDeRaridade:
+    """Onde as faixas cruzadas caem no eixo da popularidade.
+
+    O selo descreve as FAIXAS, não a pessoa: com oito faixas cruzadas de
+    cinquenta, um veredito sobre o gosto seria horóscopo. Por isso a mediana e
+    o percentil aparecem na tela junto do selo.
+    """
+
+    CATALOGO = catalog(*[
+        {**track(popularidade=p), "faixa": f"c{p}"} for p in range(1, 101)
+    ])
+
+    def ler(self, *populares: int):
+        from src.recomendacao import gosto_de_raridade
+
+        ouvidas = catalog(*[{**track(popularidade=p), "faixa": f"m{i}"}
+                            for i, p in enumerate(populares)])
+        return gosto_de_raridade(self.CATALOGO, ouvidas)
+
+    @pytest.mark.parametrize("mediana, selo", [
+        (10, "Garimpeiro de raridade"),   # abaixo do 1º quartil (22)
+        (30, "Fora do óbvio"),            # entre 22 e 37
+        (45, "Um pé no mainstream"),      # entre 37 e 50
+        (80, "Fã de hits"),               # acima do 3º quartil (50)
+    ])
+    def test_each_quartile_gets_its_own_label(self, mediana: int, selo: str) -> None:
+        leitura = self.ler(*[mediana] * 5)
+        assert leitura is not None
+        assert leitura.selo == selo
+        assert leitura.popularidade == mediana
+
+    def test_uses_the_median_so_one_hit_does_not_move_it(self) -> None:
+        # Quatro faixas escondidas e um hit: a mediana segue escondida.
+        leitura = self.ler(8, 9, 10, 11, 95)
+        assert leitura is not None and leitura.popularidade == 10
+
+    def test_popularity_zero_is_missing_data_not_obscurity(self) -> None:
+        # Zero significa "não capturado". Contá-lo entregaria um selo de
+        # raridade conquistado por falha nossa.
+        assert self.ler(0, 0, 0, 80, 80, 80, 80, 80).popularidade == 80
+
+    def test_no_reading_when_too_few_tracks_survive(self) -> None:
+        # Cinco faixas, mas três em zero: sobram duas, abaixo do mínimo.
+        assert self.ler(0, 0, 0, 40, 41) is None
+
+    def test_no_reading_without_matched_tracks(self) -> None:
+        from src.recomendacao import gosto_de_raridade
+
+        assert gosto_de_raridade(self.CATALOGO, self.CATALOGO.iloc[0:0]) is None
+
+    def test_the_percentile_is_the_share_of_the_catalogue_below(self) -> None:
+        # Mediana 25 num catálogo de 1 a 100: 24 faixas abaixo dela.
+        assert self.ler(*[25] * 5).percentil == 24
+
+
 class TestDiversificar:
     """Empate técnico se desempata por variedade, não pela ordem do catálogo.
 
