@@ -229,6 +229,46 @@ class TestGarimparPorSementes:
         assert {"match", "semente"} <= set(achadas.columns)
 
 
+class TestDiversificar:
+    """Empate técnico se desempata por variedade, não pela ordem do catálogo.
+
+    Buscando só por vibe, 102 faixas cabiam em três pontos de match e o app
+    mostrava oito quase iguais — dois cantopop, dois spanish, um mandopop —
+    porque o desempate era a ordem em que o parquet foi escrito.
+    """
+
+    def test_prefers_a_different_genre_among_technical_ties(self) -> None:
+        base = catalog(
+            {**track(popularidade=5), "faixa": "a1", "genero": "cantopop"},
+            {**track(popularidade=5), "faixa": "a2", "genero": "cantopop"},
+            {**track(popularidade=5), "faixa": "b1", "genero": "tango"},
+        )
+        # Os três empatam; o segundo cantopop cede lugar ao tango.
+        assert list(garimpar(base, NEUTRAL, teto=30, limite=2)["faixa"]) == [
+            "a1", "b1"]
+
+    def test_a_clearly_better_track_never_loses_its_place(self) -> None:
+        # Fora do empate técnico a nota manda, mesmo repetindo gênero.
+        alvo = {**NEUTRAL, "energia": 1.0}
+        base = catalog(
+            {**track(popularidade=5, energia=1.0), "faixa": "perto",
+             "genero": "rock"},
+            {**track(popularidade=5, energia=.95), "faixa": "quase",
+             "genero": "rock"},
+            {**track(popularidade=5, energia=.0), "faixa": "longe",
+             "genero": "tango"},
+        )
+        assert list(garimpar(base, alvo, teto=30, limite=2)["faixa"]) == [
+            "perto", "quase"]
+
+    def test_fills_up_when_there_are_not_enough_genres(self) -> None:
+        base = catalog(*[
+            {**track(popularidade=5), "faixa": f"t{i}", "genero": "rock"}
+            for i in range(5)
+        ])
+        assert len(garimpar(base, NEUTRAL, teto=30, limite=3)) == 3
+
+
 class TestEspacoAprendido:
     """O último nível da cascata usa o vetor aprendido, quando ele existe.
 
