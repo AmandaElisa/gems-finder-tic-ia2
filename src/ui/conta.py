@@ -13,7 +13,7 @@ import streamlit as st
 
 from src import spotify
 from src.dados import ETAPAS_OAUTH, PERMISSOES, TOPS, carregar_catalogo
-from src.recomendacao import (descrever_perfil, email_valido,
+from src.recomendacao import (PerfilDoUsuario, descrever_perfil, email_valido,
                              montar_resultado_conta, nome_do_email,
                              perfil_do_usuario)
 from src.tema import ROSA
@@ -123,6 +123,30 @@ def _tops_de_exemplo() -> list[dict[str, str]]:
             for titulo, artista in TOPS]
 
 
+def _selo_de_gosto_html(perfil: PerfilDoUsuario) -> str:
+    """O selo de quão fora do comum são as faixas cruzadas, com a conta ao lado.
+
+    O número aparece junto do selo de propósito. O selo sozinho seria um
+    veredito sobre a pessoa a partir de oito faixas; com a mediana e o
+    percentil ao lado, é uma leitura que ela pode conferir.
+
+    Vazio quando não há base — perfil de exemplo ou poucas faixas cruzadas.
+    Melhor não dizer nada do que dizer um número que não medimos.
+    """
+    leitura = perfil.raridade
+    if leitura is None:
+        return ""
+    return (
+        '<div class="gf-gosto">'
+        f'<span class="gf-pill">{leitura.selo}</span>'
+        f'<p class="gf-help">{leitura.descricao}. A mediana das '
+        f'{leitura.faixas_usadas} faixas suas que temos é '
+        f'<b>{leitura.popularidade}</b> de 100 de popularidade — acima de '
+        f'<b>{leitura.percentil}%</b> do nosso catálogo.</p>'
+        '</div>'
+    )
+
+
 def _aviso_do_perfil(perfil, conectado_de_verdade: bool) -> str:
     """Diz de onde veio o perfil — e quando ele não é da pessoa, diz isso.
 
@@ -179,7 +203,8 @@ def _tela_conectada() -> None:
               + '</div>'
               f'<p class="gf-help" style="margin:18px 0 8px">Perfil detectado: '
               f'<b>{descrever_perfil(perfil.alvo)}</b>.</p>'
-              + barras_atributos_html(perfil.alvo))
+              + barras_atributos_html(perfil.alvo)
+              + _selo_de_gosto_html(perfil))
         st.caption(_aviso_do_perfil(perfil, real))
 
     mostrar_resultados(

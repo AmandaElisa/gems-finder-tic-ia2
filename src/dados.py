@@ -1,8 +1,13 @@
-"""Dados SIMULADOS do Gems Finder e constantes de produto.
+"""Constantes de produto do Gems Finder.
 
-Tudo mora aqui dentro: 32 faixas fictícias de artistas underground, 10 artistas
-de referência mainstream fictícios, os alvos das vibes e as "mais ouvidas" do
-testador. Nenhum CSV externo, nenhuma credencial.
+O catálogo NÃO mora aqui — vem de `data/processed/`, produzido pelo notebook,
+com 89.740 faixas reais. Este arquivo guarda o que é decisão de produto e não
+sai de medição: os pesos da distância, os rótulos das barras, os textos do
+login e os tetos de popularidade.
+
+`TOPS` e `PERFIL_USUARIO` são os únicos dados fictícios que sobraram, e servem
+só ao login encenado de quem visita sem conectar o Spotify. A tela marca esse
+caso como exemplo, como o princípio 2 da constituição exige.
 """
 
 from __future__ import annotations
@@ -70,10 +75,10 @@ PERFIL_USUARIO: dict[str, float] = {
 }
 # Teto de popularidade da aba Minha conta, que não tem slider. Era 20, herdado
 # do protótipo, e prendia o garimpo na faixa mais rasa do catálogo: as joias
-# saíam quase todas entre 3 e 20 de popularidade. 50 é o mesmo máximo que o
-# slider do Descobrir oferece, e é onde as quatro famílias sem cauda obscura
-# (Gospel 37, Forró 36, Sertanejo 43) passam a caber.
-TETO_CONTA = 50
+# saíam quase todas entre 3 e 20 de popularidade. Acompanha o máximo do slider
+# do Descobrir, que é o mesmo limiar do artista consolidado: acima de 65 a
+# faixa é de artista de parada, e o filtro de artista já a tirou.
+TETO_CONTA = 65
 
 ETAPAS_OAUTH: tuple[str, ...] = (
     "Autorizando acesso via OAuth",

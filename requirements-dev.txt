@@ -5,13 +5,20 @@
 # Tests
 pytest>=7.0
 
-# Notebooks (notebook/*.ipynb). Without these, gems_finder_eda.ipynb cannot
+# Notebooks (notebook/Grupo_9_Sound_Hunters.ipynb). Without these it cannot
 # run on a fresh clone — it imports matplotlib and seaborn.
 jupyterlab>=4.0
 matplotlib>=3.8
 seaborn>=0.13
 
-# scikit-learn is not imported by any notebook yet, but the methodology's
-# feature-selection and k-NN sections need it — see
-# docs/specs/2026-09-01-recommender-methodology/spec.md §6.2 and §6.3.
+# scikit-learn: StandardScaler, KMeans, the seven feature-selection filters,
+# and the TruncatedSVD that builds the learned item representation. Training
+# only — the app reads exported parameters and never calls fit or predict.
 scikit-learn>=1.4
+
+# lingua: language of each track, detected from title + artist + album and
+# stored with its confidence (notebook section 2.6). Short-text detection is
+# what it is built for; langdetect and cld3 are tuned for paragraphs. Also
+# training only: the column ships inside catalogo.parquet, so production
+# never detects anything.
+lingua-language-detector>=2.0

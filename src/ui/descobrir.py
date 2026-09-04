@@ -131,7 +131,7 @@ def pagina_descobrir(catalogo: pd.DataFrame, artistas: pd.DataFrame,
             caixa_numero = st.empty()
         with direita:
             caixa_strata = st.empty()
-            teto = st.slider("Popularidade máxima", 1, 50, st.session_state.teto,
+            teto = st.slider("Popularidade máxima", 1, 65, st.session_state.teto,
                              key="w_teto", label_visibility="collapsed")
         st.session_state.teto = teto
         caixa_numero.markdown(

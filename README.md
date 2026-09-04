@@ -29,12 +29,12 @@
 ---
 
 ## 🧭 Sobre o Projeto
-O **Gems Finder** é um produto de dados desenvolvido para análises avançadas de engenharia e machine learning. O sistema resolve o viés de popularidade das plataformas de streaming tradicionais, cruzando perfis de áudio de grandes sucessos (*mainstream*) com faixas de baixa popularidade para entregar recomendações de descoberta justa e curadoria independente.
+O **Gems Finder** é um produto de dados desenvolvido para análises avançadas de engenharia e machine learning. O sistema resolve o viés de popularidade das plataformas de streaming tradicionais: em vez de ranquear por quem já toca, ele parte do que a pessoa ouve e busca vizinhos sonoros entre as faixas de baixa popularidade, excluindo apenas os artistas de parada. O catálogo é classificado em três faixas por `pop_max` — **Independente** (< 40), **Conhecido** (40–65) e **Consolidado** (≥ 65) — e só o último fica fora das recomendações.
 
 ## ✨ Principais Funcionalidades
 * **🎛️ Explorador por Vibes:** Segmentação do catálogo em cinco *moods* — Foco, Aconchego, Treino, Heavy e Gingado — descobertos por **K-Means** sobre `danceability`, `energy`, `valence`, `acousticness` e `instrumentalness`. O K foi validado de 3 a 8 por silhueta, Davies-Bouldin, Calinski-Harabasz e cotovelo.
 * **📊 Garimpo por semente:** Cada faixa ou artista de referência procura vizinhos no próprio território sonoro e de gênero, em vez de tudo virar uma média só — a média de gostos distintos cai num ponto que não é nenhum deles.
-* **🎧 Modo Híbrido / Conexão Spotify:** Arquitetura flexível que permite tanto a exploração pública por *vibes* quanto simulações de autenticação via API para perfis de teste.
+* **🎧 Conexão Spotify:** Login OAuth real. O perfil sai do cruzamento das suas 50 faixas mais ouvidas com o catálogo, e cada joia diz de qual faixa sua ela veio. Sem conectar, o app funciona inteiro — só o perfil pessoal fica de fora, e a tela marca esse caso como exemplo.
 * **📈 Métricas honestas:** Afinidade e cobertura do catálogo elegível, ambas calculadas. Não há métrica de precisão exibida: ela voltará quando existir protocolo de avaliação escrito.
 
 ## 🗂️ Estrutura do Repositório
@@ -57,8 +57,11 @@ gems-finder/
 ├── assets/                   # Imagens e recursos visuais para a documentação
 ├── src/                      # Código do app componentizado
 │   ├── tema.py               # Paleta de cores compartilhada
-│   ├── dados.py              # Dados simulados e constantes de produto
-│   ├── recomendacao.py       # Lógica do modelo (match, garimpo, cobertura)
+│   ├── dados.py              # Constantes de produto (o catálogo vem de data/processed/)
+│   ├── artefatos.py          # Fronteira: carrega os artefatos do notebook
+│   ├── generos.py            # Famílias de gênero, lidas do modelo
+│   ├── spotify.py            # OAuth e Web API
+│   ├── recomendacao.py       # Lógica do modelo (match, garimpo, sementes, cobertura)
 │   └── ui/                   # Camada visual
 │       ├── estilo.py         # CSS (estilo "sticker" do protótipo)
 │       ├── mascote.py        # SVGs da mascote Pepita e logo
@@ -98,6 +101,7 @@ notebook/  →  data/processed/        →  app.py
 (treino)      modelo.json                (inferência)
               catalogo.parquet
               artistas.parquet
+              embeddings.npy
 ```
 
 **Por que não FastAPI e Docker.** Uma API exposta faria sentido com vários
@@ -112,20 +116,25 @@ registrada em `docs/specs/2026-09-03-real-model-in-the-app/spec.md`.
 | Ferramenta | Uso |
 |---|---|
 | **pandas** · **NumPy** | Limpeza, deduplicação e vetorização dos atributos de áudio |
-| **scikit-learn** | `StandardScaler`, `KMeans` (moods), seleção de features e métricas de validação — **só no notebook** |
+| **scikit-learn** | `StandardScaler`, `KMeans` (moods), as 7 técnicas de seleção de features, métricas de validação e o `TruncatedSVD` da representação aprendida — **só no notebook** |
+| **lingua** | Idioma de cada faixa, detectado de título + artista + álbum e guardado com a confiança — **só no notebook** |
 | **SciPy** | Testes estatísticos da seleção de features (qui-quadrado, Cramér's V) |
 | **matplotlib** · **seaborn** | Gráficos da análise exploratória |
 | **PyArrow** | Leitura dos artefatos em Parquet pelo app |
 
-O app **não** depende de scikit-learn nem de joblib: o modelo é exportado como
-dado puro (`modelo.json` — parâmetros do scaler, centroides, limiares), o que
-mantém a produção leve e imune a incompatibilidade de *pickle* entre versões.
+O app **não** depende de scikit-learn, de joblib nem de lingua: tudo isso é
+treino. O modelo sai como dado puro — `modelo.json` com parâmetros do scaler,
+centroides e limiares, e `embeddings.npy` com os vetores de faixa já
+calculados. A similaridade no espaço aprendido é cosseno entre vetores
+unitários, ou seja um produto escalar, que o NumPy resolve sozinho. Isso mantém
+a produção leve e imune a incompatibilidade de *pickle* entre versões — foi
+justamente um `joblib` em `requirements.txt` que quebrou um deploy.
 
 ### Aplicação
 | Ferramenta | Uso |
 |---|---|
 | **Streamlit** | Interface completa, com CSS próprio fiel ao protótipo aprovado |
-| **Spotify Web API** | OAuth (Authorization Code), faixas e artistas mais ouvidos, criação de playlist já preenchida |
+| **Spotify Web API** | OAuth (Authorization Code), faixas e artistas mais ouvidos. A criação de playlist está implementada e é bloqueada pela plataforma — ver limitações abaixo |
 | **requests** | Cliente HTTP da API |
 
 > Os atributos de áudio **nunca** vêm da API: o Spotify descontinuou
@@ -136,8 +145,8 @@ mantém a produção leve e imune a incompatibilidade de *pickle* entre versões
 ### Qualidade
 | Ferramenta | Uso |
 |---|---|
-| **pytest** | 108 testes sobre a lógica de recomendação |
-| **JupyterLab** | Notebook de treino, executável de ponta a ponta fora do Colab |
+| **pytest** | 123 testes sobre a lógica de recomendação |
+| **JupyterLab** | Notebook de treino, executável de ponta a ponta fora do Colab. As dependências dele estão em `requirements-dev.txt`, e precisam ser instaladas no Python do **kernel** do Jupyter, que não é necessariamente o venv do app |
 
 ### Modelo em produção
 Cada artefato carrega uma **versão derivada do conteúdo** (hash das features,
