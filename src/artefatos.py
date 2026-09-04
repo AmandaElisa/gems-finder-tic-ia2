@@ -277,3 +277,32 @@ def _chave(nome: str) -> str:
     sem_acento = (unicodedata.normalize("NFD", nome)
                   .encode("ascii", "ignore").decode())
     return sem_acento.lower()
+
+
+@lru_cache(maxsize=1)
+def embeddings() -> "np.ndarray | None":
+    """Os vetores de faixa, alinhados linha a linha com `catalogo()`.
+
+    Cada linha junta os cinco atributos de áudio padronizados às dimensões
+    latentes que o TruncatedSVD extraiu da matriz de gêneros, com os dois
+    blocos normalizados e ponderados. Como todo vetor é unitário, similaridade
+    de cosseno vira produto escalar, e o app faz isso só com numpy — o
+    scikit-learn treina no notebook e não volta para produção.
+
+    Devolve None se o arquivo não existir, em vez de estourar: o embedding
+    melhora o último nível da cascata de busca, e a cascata funciona sem ele.
+    Um artefato antigo continua servindo o app inteiro.
+    """
+    import numpy as np
+
+    caminho = pasta() / "embeddings.npy"
+    if not caminho.exists():
+        return None
+    matriz = np.load(caminho)
+    if len(matriz) != len(catalogo()):
+        raise ValueError(
+            f"embeddings.npy tem {len(matriz)} linhas e o catálogo tem "
+            f"{len(catalogo())}. Os dois vêm da mesma execução do notebook; "
+            "reexporte os artefatos."
+        )
+    return matriz
