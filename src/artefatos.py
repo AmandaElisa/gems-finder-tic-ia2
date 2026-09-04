@@ -125,8 +125,18 @@ NAO_SAO_GENEROS = {"piano", "guitar", "chill", "sad", "happy", "study",
 # A distinção é semântica e não está na estatística.
 SO_NACIONALIDADE = {"french", "british", "german", "swedish"}
 
-# Nenhuma das duas decide a que família uma faixa pertence.
-NAO_DEFINEM_FAMILIA = NAO_SAO_GENEROS | SO_NACIONALIDADE
+# Cópia local, usada só quando o artefato é antigo demais para trazer a lista.
+# A fonte de verdade é o notebook: as etiquetas são retiradas das famílias lá,
+# na mesma célula que as documenta, e exportadas em `modelo.json`. Manter a
+# decisão em dois lugares foi exatamente o que deixou `german` fora da busca
+# mas ainda listado dentro da família Rock.
+_PADRAO_NAO_DEFINEM = NAO_SAO_GENEROS | SO_NACIONALIDADE
+
+
+def nao_definem_familia() -> frozenset[str]:
+    """Etiquetas que não colocam uma faixa em família nenhuma."""
+    doc = modelo().get("nao_definem_familia")
+    return frozenset(doc) if doc else frozenset(_PADRAO_NAO_DEFINEM)
 
 
 def _rotulo_de_genero(generos: Any) -> str:

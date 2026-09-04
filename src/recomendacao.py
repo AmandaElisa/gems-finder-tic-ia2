@@ -96,7 +96,7 @@ def _genero_visivel(faixa: Mapping[str, Any], procurados: set[str]) -> str:
     lista = [] if crus is None else list(crus)
     if not lista:
         return str(faixa.get("genero", ""))
-    de_verdade = [g for g in lista if g not in artefatos.NAO_DEFINEM_FAMILIA]
+    de_verdade = [g for g in lista if g not in artefatos.nao_definem_familia()]
     da_familia = [g for g in de_verdade if g in procurados]
     for candidatos in (da_familia, de_verdade,
                        [g for g in lista if g in procurados], lista):
@@ -119,7 +119,7 @@ def _marca_de_pertencimento(catalogo: pd.DataFrame,
         # `french` é Indie, ou que uma marcada apenas `chill` é Indie, é
         # inventar informação que o dataset não tem. Ela continua achável pela
         # vibe e pela busca sem filtro de gênero.
-        de_verdade = set(lista) - artefatos.NAO_DEFINEM_FAMILIA
+        de_verdade = set(lista) - artefatos.nao_definem_familia()
         return bool(procurados & de_verdade)
 
     return catalogo["generos"].apply(pertence)
@@ -337,7 +337,7 @@ def _pool_da_semente(base: pd.DataFrame, semente: Semente,
         return base, SEM_GENERO
     # Os gêneros DE VERDADE da semente: o Joji vem com `chill` na lista, e
     # procurar por `chill` traz o catálogo inteiro de volta.
-    proprios = set(semente.generos) - artefatos.NAO_DEFINEM_FAMILIA or set(semente.generos)
+    proprios = set(semente.generos) - artefatos.nao_definem_familia() or set(semente.generos)
     niveis = (proprios,
               familias.expandir(sorted({f for g in proprios
                                         if (f := familias.familia_de(g))})))
