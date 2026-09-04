@@ -22,3 +22,8 @@ scikit-learn>=1.4
 # training only: the column ships inside catalogo.parquet, so production
 # never detects anything.
 lingua-language-detector>=2.0
+
+# python-docx: converte os relatórios de Markdown para .docx
+# (scripts/md_para_docx.py), porque colar Markdown no Google Docs não
+# preserva títulos nem tabelas. Só ferramenta de documentação.
+python-docx>=1.1
