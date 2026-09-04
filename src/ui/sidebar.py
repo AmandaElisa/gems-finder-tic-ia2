@@ -17,12 +17,18 @@ def barra_lateral(catalogo: pd.DataFrame, artistas: pd.DataFrame) -> str:
               '<small>joias ocultas do Spotify</small></div></div>')
         bloco('<p class="gf-nav-label">Navegação</p>')
         pagina = st.radio("Navegação", PAGINAS, key="w_nav", label_visibility="collapsed")
-        bloco('<div class="gf-rail-foot"><b>114.000</b> faixas indexadas<br>'
+        # O número que a busca alcança é o do catálogo tratado, não o do CSV:
+        # 24.259 linhas do bruto eram a mesma faixa repetida uma vez por gênero.
+        bloco('<div class="gf-rail-foot">'
+              # `:n` depende do locale da máquina e saiu sem separador; o
+              # ponto de milhar é fixo porque a interface é em português.
+              f'<b>{len(catalogo):,}</b>'.replace(",", ".")
+              + ' faixas únicas tratadas · <b>114.000</b> linhas no dataset<br>'
               f'<b>{catalogo["genero"].nunique()}</b> gêneros · '
               f'<b>{len(artistas)}</b> artistas de referência<br><br>'
               'Residência em IA · UnB · Instituto ELDORADO<br>'
               'Nano-Challenge: Spotify Data<br>'
-              'Grupo 9<br><br>'
+              'Grupo 9 &nbsp;·&nbsp; Sound Hunters<br><br>'
               '<b>Integrantes:</b><br>'
               '<a href="https://github.com/AmandaElisa" target="_blank" '
               'rel="noopener">Amanda Elisa de Oliveira Carvalho</a><br>'

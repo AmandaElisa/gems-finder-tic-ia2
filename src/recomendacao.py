@@ -60,17 +60,18 @@ def _do_genero(catalogo: pd.DataFrame, generos: Sequence[str]) -> pd.DataFrame:
     exibir, mas errada para filtrar: escolher "rock" perderia uma faixa cujos
     gêneros são ["alt-rock", "rock"]. Sem a lista, cai na coluna simples.
 
-    Etiqueta de playlist não decide família. `chill`, `sad`, `piano` e as
-    outras de `NAO_SAO_GENEROS` atravessam o catálogo inteiro, então bastava
-    uma delas para arrastar música de qualquer lugar para dentro de uma
+    Só gênero de verdade decide família — nem etiqueta de playlist, nem
+    nacionalidade. As duas atravessam o catálogo inteiro, então bastava uma
+    delas para arrastar música de qualquer estilo para dentro de qualquer
     família. Medido: 19% do universo "Indie" entrava só por `chill` ou `sad`,
-    e metade de "Clássica e instrumental" só por `piano`, `guitar`, `sleep`
-    ou `study` — foi assim que uma busca por Indie devolveu faixa `indian`
-    marcada também como `chill`.
+    metade de "Clássica e instrumental" só por `piano`, `guitar`, `sleep` ou
+    `study`, e uma busca por Indie devolvia três faixas francesas em oito
+    porque `french` mora nessa família.
 
-    Quando a faixa tem gênero de verdade, são eles que decidem. A faixa que
-    SÓ tem etiqueta continua valendo pela etiqueta, senão ela sumiria da
-    busca inteira.
+    Faixa sem nenhum gênero de verdade não entra em família nenhuma. São 2.746
+    delas, e é a resposta honesta: o dataset não diz o que Indila toca, só que
+    ela canta em francês. Continuam achaveis pela vibe e pela busca sem filtro
+    de gênero.
     """
     procurados = familias.expandir(generos)
     if "generos" in catalogo.columns:
@@ -95,7 +96,7 @@ def _genero_visivel(faixa: Mapping[str, Any], procurados: set[str]) -> str:
     lista = [] if crus is None else list(crus)
     if not lista:
         return str(faixa.get("genero", ""))
-    de_verdade = [g for g in lista if g not in artefatos.NAO_SAO_GENEROS]
+    de_verdade = [g for g in lista if g not in artefatos.NAO_DEFINEM_FAMILIA]
     da_familia = [g for g in de_verdade if g in procurados]
     for candidatos in (da_familia, de_verdade,
                        [g for g in lista if g in procurados], lista):
@@ -113,9 +114,13 @@ def _marca_de_pertencimento(catalogo: pd.DataFrame,
     etiqueta o que o filtro de gênero acabou de tirar.
     """
     def pertence(lista: Any) -> bool:
-        da_faixa = set(lista)
-        de_verdade = da_faixa - artefatos.NAO_SAO_GENEROS
-        return bool(procurados & (de_verdade or da_faixa))
+        # Só gênero de verdade coloca faixa numa família. Sem nenhum, a faixa
+        # não entra em família alguma: dizer que uma faixa marcada apenas
+        # `french` é Indie, ou que uma marcada apenas `chill` é Indie, é
+        # inventar informação que o dataset não tem. Ela continua achável pela
+        # vibe e pela busca sem filtro de gênero.
+        de_verdade = set(lista) - artefatos.NAO_DEFINEM_FAMILIA
+        return bool(procurados & de_verdade)
 
     return catalogo["generos"].apply(pertence)
 
@@ -135,11 +140,30 @@ def media_de_vetores(vetores: Sequence[Mapping[str, float]]) -> dict[str, float]
             for atributo in ATRIBUTOS}
 
 
-def universo(catalogo: pd.DataFrame, generos: Sequence[str]) -> pd.DataFrame:
-    """Universo de busca: o catálogo todo, ou só as faixas dos gêneros escolhidos."""
-    if not generos:
-        return catalogo
-    return _do_genero(catalogo, generos)
+def universo(catalogo: pd.DataFrame, generos: Sequence[str],
+             vibes: Sequence[str] = ()) -> pd.DataFrame:
+    """Universo de busca: o catálogo, estreitado pelos critérios de conjunto.
+
+    Gênero e vibe **filtram**; artista não, porque artista é semente e semente
+    procura, não restringe.
+
+    A vibe passou a filtrar por causa de um defeito medido: quando havia
+    artista escolhido, o alvo combinado era calculado e depois descartado, e as
+    sementes assumiam o ranqueamento sozinhas. Na prática escolher *Heavy* ou
+    *Aconchego* junto com dois artistas devolvia resultado idêntico — a vibe
+    não fazia nada. Como cada faixa carrega o `mood` do cluster a que pertence,
+    filtrar por ele é a leitura direta do que a pessoa pediu.
+    """
+    base = catalogo if not generos else _do_genero(catalogo, generos)
+    if vibes and "mood" in base.columns:
+        nomes = {VIBES[v]["nome"] for v in vibes if v in VIBES}
+        if nomes:
+            do_mood = base[base["mood"].isin(nomes)]
+            # Um universo vazio ajudaria ninguém: se a interseção não existe,
+            # a vibe volta a ser só alvo, e o gênero manda.
+            if not do_mood.empty:
+                return do_mood
+    return base
 
 
 class Criterio(NamedTuple):
@@ -302,7 +326,7 @@ def _pool_da_semente(base: pd.DataFrame, semente: Semente,
         return base
     # Os gêneros DE VERDADE da semente: o Joji vem com `chill` na lista, e
     # procurar por `chill` traz o catálogo inteiro de volta.
-    proprios = set(semente.generos) - artefatos.NAO_SAO_GENEROS or set(semente.generos)
+    proprios = set(semente.generos) - artefatos.NAO_DEFINEM_FAMILIA or set(semente.generos)
     niveis = (proprios,
               familias.expandir(sorted({f for g in proprios
                                         if (f := familias.familia_de(g))})))
@@ -506,7 +530,7 @@ def montar_resultado(catalogo: pd.DataFrame, artistas: pd.DataFrame,
     Gênero(s) filtram o universo de busca; vibe(s), gênero(s) e artista(s)
     formam o alvo, um vetor por grupo escolhido.
     """
-    base = universo(catalogo, generos)
+    base = universo(catalogo, generos, vibes)
     criterios = criterios_ativos(catalogo, artistas, vibes, generos, favoritos)
     if not criterios:
         raise ValueError("montar_resultado needs at least one active criterion")

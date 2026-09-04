@@ -1,6 +1,6 @@
 {
- "versao": "b0f390acfbe3",
- "treinado_em": "2026-09-03T23:32:08+00:00",
+ "versao": "45a75fc6edad",
+ "treinado_em": "2026-09-04T00:26:06+00:00",
  "faixas_no_treino": 88945,
  "familias_de_genero": {
   "Rock": [
@@ -15,7 +15,6 @@
    "power-pop",
    "goth",
    "ska",
-   "j-rock",
    "german"
   ],
   "Metal": [
@@ -45,11 +44,6 @@
    "pop",
    "pop-film",
    "happy",
-   "k-pop",
-   "j-pop",
-   "j-idol",
-   "cantopop",
-   "mandopop",
    "anime",
    "disney",
    "show-tunes",
@@ -75,7 +69,6 @@
    "idm",
    "club",
    "dance",
-   "j-dance",
    "disco",
    "synth-pop",
    "party",
@@ -102,9 +95,11 @@
    "reggae",
    "dancehall"
   ],
-  "MPB, samba, pagode e bossa nova": [
+  "MPB e bossa nova": [
    "mpb",
-   "brazil",
+   "brazil"
+  ],
+  "Samba e pagode": [
    "samba",
    "pagode"
   ],
@@ -140,7 +135,14 @@
    "indian",
    "iranian",
    "turkish",
-   "malay"
+   "malay",
+   "j-pop",
+   "j-idol",
+   "j-rock",
+   "j-dance",
+   "k-pop",
+   "cantopop",
+   "mandopop"
   ],
   "Infantil e humor": [
    "children",
@@ -181,11 +183,11 @@
  ],
  "centroides": {
   "Gingado": [
-   0.7588748537202079,
+   0.7588748537202078,
    0.3379020049545346,
    0.944159100283219,
-   -0.26246567843557983,
-   -0.4720496597998313
+   -0.2624656784355798,
+   -0.47204965979983127
   ],
   "Treino": [
    0.055380997540318985,
@@ -196,10 +198,10 @@
   ],
   "Foco": [
    -1.0758613149578544,
-   -1.698313370874885,
+   -1.6983133708748848,
    -1.004575059480425,
-   1.5761840290135118,
-   2.0694197179665794
+   1.576184029013512,
+   2.06941971796658
   ],
   "Aconchego": [
    -0.27794869767262725,
@@ -209,7 +211,7 @@
    -0.47304586939036186
   ],
   "Heavy": [
-   -0.4875540929287483,
+   -0.4875540929287484,
    0.6382281277487319,
    -0.4728139353982253,
    -0.7391758529076209,
