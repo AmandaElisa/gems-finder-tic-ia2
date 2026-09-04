@@ -20,3 +20,7 @@ Thumbs.db
 
 # credenciais
 .env
+
+# Os .docx são gerados de docs/**/*.md por scripts/md_para_docx.py — versionar
+# binário derivado só cria conflito de merge sem diff legível.
+docs/**/*.docx
