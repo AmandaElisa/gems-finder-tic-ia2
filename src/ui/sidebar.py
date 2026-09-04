@@ -22,7 +22,7 @@ def barra_lateral(catalogo: pd.DataFrame, artistas: pd.DataFrame) -> str:
               f'<b>{len(artistas)}</b> artistas de referência<br><br>'
               'Residência em IA · UnB · Instituto ELDORADO<br>'
               'Nano-Challenge: Spotify Data<br>'
-              'Grupo 9<br><br>'
+              'Grupo 9 &nbsp;·&nbsp; Sound Hunters<br><br>'
               '<b>Integrantes:</b><br>'
               '<a href="https://github.com/AmandaElisa" target="_blank" '
               'rel="noopener">Amanda Elisa de Oliveira Carvalho</a><br>'
