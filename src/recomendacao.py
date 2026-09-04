@@ -135,11 +135,30 @@ def media_de_vetores(vetores: Sequence[Mapping[str, float]]) -> dict[str, float]
             for atributo in ATRIBUTOS}
 
 
-def universo(catalogo: pd.DataFrame, generos: Sequence[str]) -> pd.DataFrame:
-    """Universo de busca: o catálogo todo, ou só as faixas dos gêneros escolhidos."""
-    if not generos:
-        return catalogo
-    return _do_genero(catalogo, generos)
+def universo(catalogo: pd.DataFrame, generos: Sequence[str],
+             vibes: Sequence[str] = ()) -> pd.DataFrame:
+    """Universo de busca: o catálogo, estreitado pelos critérios de conjunto.
+
+    Gênero e vibe **filtram**; artista não, porque artista é semente e semente
+    procura, não restringe.
+
+    A vibe passou a filtrar por causa de um defeito medido: quando havia
+    artista escolhido, o alvo combinado era calculado e depois descartado, e as
+    sementes assumiam o ranqueamento sozinhas. Na prática escolher *Heavy* ou
+    *Aconchego* junto com dois artistas devolvia resultado idêntico — a vibe
+    não fazia nada. Como cada faixa carrega o `mood` do cluster a que pertence,
+    filtrar por ele é a leitura direta do que a pessoa pediu.
+    """
+    base = catalogo if not generos else _do_genero(catalogo, generos)
+    if vibes and "mood" in base.columns:
+        nomes = {VIBES[v]["nome"] for v in vibes if v in VIBES}
+        if nomes:
+            do_mood = base[base["mood"].isin(nomes)]
+            # Um universo vazio ajudaria ninguém: se a interseção não existe,
+            # a vibe volta a ser só alvo, e o gênero manda.
+            if not do_mood.empty:
+                return do_mood
+    return base
 
 
 class Criterio(NamedTuple):
@@ -506,7 +525,7 @@ def montar_resultado(catalogo: pd.DataFrame, artistas: pd.DataFrame,
     Gênero(s) filtram o universo de busca; vibe(s), gênero(s) e artista(s)
     formam o alvo, um vetor por grupo escolhido.
     """
-    base = universo(catalogo, generos)
+    base = universo(catalogo, generos, vibes)
     criterios = criterios_ativos(catalogo, artistas, vibes, generos, favoritos)
     if not criterios:
         raise ValueError("montar_resultado needs at least one active criterion")
