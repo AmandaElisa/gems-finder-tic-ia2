@@ -7,6 +7,7 @@ HTML, mais o garimpo (filtro + ranking) e as métricas exibidas na UI.
 from __future__ import annotations
 
 import math
+import random
 import re
 from typing import Any, Mapping, NamedTuple, Sequence
 
@@ -258,7 +259,7 @@ def elegiveis_para_garimpo(base: pd.DataFrame) -> pd.DataFrame:
 
 
 def garimpar(base: pd.DataFrame, alvo: Mapping[str, float], teto: int,
-             limite: int = 8) -> pd.DataFrame:
+             limite: int = 8, variar: bool = False) -> pd.DataFrame:
     """Filtra por elegibilidade e popularidade <= teto, e ranqueia por match.
 
     A ordem é só afinidade. Havia aqui um bônus de 0,15 por ponto de
@@ -279,8 +280,62 @@ def garimpar(base: pd.DataFrame, alvo: Mapping[str, float], teto: int,
         return elegiveis.assign(match=pd.Series(dtype="int64"))
     elegiveis["match"] = [match(linha, alvo) for _, linha in elegiveis.iterrows()]
     # kind="stable" preserva a ordem do catálogo nos empates, como o sort do JS.
-    return (elegiveis.sort_values("match", ascending=False, kind="stable")
-            .head(limite).reset_index(drop=True))
+    ordenada = elegiveis.sort_values("match", ascending=False, kind="stable")
+    return _diversificar(ordenada, limite, variar).reset_index(drop=True)
+
+
+# Quantos pontos de match ainda contam como "praticamente empatado". Medido:
+# no universo da vibe Aconchego, 102 faixas cabem em três pontos, espalhadas
+# por 30 gêneros.
+EMPATE_TECNICO = 3
+
+
+def _diversificar(ordenada: pd.DataFrame, limite: int,
+                  variar: bool = False) -> pd.DataFrame:
+    """As melhores, sem repetir gênero enquanto houver alternativa igual de boa.
+
+    Sem isto, uma busca só por vibe devolvia oito faixas quase idênticas:
+    Aconchego trazia dois cantopop, dois spanish e um mandopop, porque dentro
+    de três pontos do topo cabem 102 faixas e o desempate acabava sendo a
+    ordem do catálogo — que não significa nada.
+
+    Só reordena dentro do empate técnico. Uma faixa claramente mais parecida
+    com o alvo nunca perde lugar para uma pior de outro gênero: a primeira
+    passada leva uma por gênero, a segunda completa pela nota.
+
+    Com `variar`, sorteia dentro do empate a cada garimpo, então clicar de
+    novo traz joias novas. Não é enfeite: entre 102 faixas que diferem em três
+    pontos, escolher sempre as mesmas oito é arbitrário, não é mais preciso —
+    o desempate hoje é a ordem do catálogo, que não significa nada. O sorteio
+    nunca cruza a fronteira do empate, então nenhuma faixa pior sobe.
+
+    `variar=False` por padrão: os testes precisam de ordem previsível.
+    """
+    if "genero" not in ordenada.columns or len(ordenada) <= limite:
+        return ordenada.head(limite)
+    corte = int(ordenada["match"].iloc[0]) - EMPATE_TECNICO
+    empatadas = ordenada[ordenada["match"] >= corte]
+    if variar and len(empatadas) > limite:
+        embaralhada = list(empatadas.index)
+        random.shuffle(embaralhada)
+        empatadas = empatadas.loc[embaralhada]
+
+    escolhidas: list[Any] = []
+    generos_usados: set[str] = set()
+    for indice, linha in empatadas.iterrows():
+        if len(escolhidas) >= limite:
+            break
+        genero = str(linha.get("genero", ""))
+        if genero and genero in generos_usados:
+            continue
+        generos_usados.add(genero)
+        escolhidas.append(indice)
+
+    # Faltou gênero distinto? completa pela ordem de afinidade.
+    if len(escolhidas) < limite:
+        restantes = [i for i in ordenada.index if i not in set(escolhidas)]
+        escolhidas += restantes[:limite - len(escolhidas)]
+    return ordenada.loc[escolhidas]
 
 
 class Semente(NamedTuple):
@@ -614,7 +669,7 @@ def montar_resultado(catalogo: pd.DataFrame, artistas: pd.DataFrame,
     # vibe é a média medida de um cluster, então ali o centroide é honesto.
     sementes = sementes_de_artistas(catalogo, artistas, favoritos)
     achadas = (garimpar_por_sementes(base, sementes, teto) if sementes
-               else garimpar(base, alvo, teto))
+               else garimpar(base, alvo, teto, variar=True))
     if not achadas.empty and "generos" in achadas.columns:
         procurados = familias.expandir(generos) if generos else set()
         achadas = achadas.copy()
