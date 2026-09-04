@@ -99,6 +99,28 @@ NAO_SAO_GENEROS = {"piano", "guitar", "chill", "sad", "happy", "study",
                    "sleep", "party", "romance", "club", "groove",
                    "world-music"}
 
+# Etiquetas que dizem de onde a música vem, não como ela soa. O dataset marca
+# 999 faixas como `french` e 84% delas não têm nenhum outro rótulo — Indila,
+# rap de Captaine Roshi e chanson entram todos no mesmo balde. Como `french` e
+# `british` moram na família Indie e `german` na Rock, bastava a nacionalidade
+# para arrastar música de qualquer estilo para dentro delas: uma busca por
+# Indie devolvia três faixas francesas em oito.
+#
+# `indian`, `iranian`, `turkish`, `samba`, `forro`, `j-idol` e `k-pop` NÃO
+# entram aqui, e a diferença é de conteúdo, não de forma: elas nomeiam
+# tradições sonoras próprias, e o grupo construiu famílias inteiras em cima
+# delas. "Francês" não é um som; "forró" é.
+#
+# Medido, e registrado porque é a terceira vez que a tentação aparece: nem
+# IDF nem entropia de co-ocorrência separam esta lista do resto. O dataset é
+# balanceado em ~1000 faixas por gênero, então o IDF varia de 4,46 a 4,60, e
+# `iranian` tem 100% das faixas sem outro rótulo, exatamente como `french`.
+# A distinção é semântica e não está na estatística.
+SO_NACIONALIDADE = {"french", "british", "german", "swedish"}
+
+# Nenhuma das duas decide a que família uma faixa pertence.
+NAO_DEFINEM_FAMILIA = NAO_SAO_GENEROS | SO_NACIONALIDADE
+
 
 def _rotulo_de_genero(generos: Any) -> str:
     """O gênero que melhor rotula um artista, dada a lista das faixas dele.
