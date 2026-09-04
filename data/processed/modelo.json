@@ -1,6 +1,6 @@
 {
- "versao": "45a75fc6edad",
- "treinado_em": "2026-09-04T00:26:06+00:00",
+ "versao": "5ae9b3533e7c",
+ "treinado_em": "2026-09-04T01:02:33+00:00",
  "faixas_no_treino": 88945,
  "familias_de_genero": {
   "Rock": [
@@ -14,8 +14,7 @@
    "psych-rock",
    "power-pop",
    "goth",
-   "ska",
-   "german"
+   "ska"
   ],
   "Metal": [
    "metal",
@@ -34,21 +33,14 @@
    "alt-rock",
    "alternative",
    "garage",
-   "emo",
-   "british",
-   "french",
-   "chill",
-   "sad"
+   "emo"
   ],
   "Pop": [
    "pop",
    "pop-film",
-   "happy",
    "anime",
    "disney",
-   "show-tunes",
-   "swedish",
-   "world-music"
+   "show-tunes"
   ],
   "Eletrônica": [
    "electronic",
@@ -67,11 +59,9 @@
    "dubstep",
    "dub",
    "idm",
-   "club",
    "dance",
    "disco",
    "synth-pop",
-   "party",
    "trip-hop"
   ],
   "Hip-hop e soul": [
@@ -79,7 +69,6 @@
    "r-n-b",
    "soul",
    "funk",
-   "groove",
    "afrobeat"
   ],
   "Gospel": [
@@ -118,18 +107,13 @@
    "acoustic",
    "folk",
    "singer-songwriter",
-   "songwriter",
-   "romance"
+   "songwriter"
   ],
   "Clássica e instrumental": [
    "classical",
    "opera",
-   "piano",
-   "guitar",
    "new-age",
-   "ambient",
-   "study",
-   "sleep"
+   "ambient"
   ],
   "Índia e Oriente": [
    "indian",
@@ -150,6 +134,24 @@
    "comedy"
   ]
  },
+ "nao_definem_familia": [
+  "british",
+  "chill",
+  "club",
+  "french",
+  "german",
+  "groove",
+  "guitar",
+  "happy",
+  "party",
+  "piano",
+  "romance",
+  "sad",
+  "sleep",
+  "study",
+  "swedish",
+  "world-music"
+ ],
  "features_mood": [
   "danceability",
   "energy",
@@ -157,6 +159,12 @@
   "acousticness",
   "instrumentalness"
  ],
+ "embedding": {
+  "k": 48,
+  "peso_genero": 0.5,
+  "dimensoes": 53,
+  "arquivo": "embeddings.npy"
+ },
  "nomes_mood": {
   "2": "Foco",
   "1": "Treino",
@@ -183,11 +191,11 @@
  ],
  "centroides": {
   "Gingado": [
-   0.7588748537202078,
+   0.7588748537202079,
    0.3379020049545346,
    0.944159100283219,
    -0.2624656784355798,
-   -0.47204965979983127
+   -0.4720496597998313
   ],
   "Treino": [
    0.055380997540318985,
@@ -198,20 +206,20 @@
   ],
   "Foco": [
    -1.0758613149578544,
-   -1.6983133708748848,
-   -1.004575059480425,
+   -1.698313370874885,
+   -1.0045750594804252,
    1.576184029013512,
    2.06941971796658
   ],
   "Aconchego": [
-   -0.27794869767262725,
+   -0.2779486976726273,
    -1.0217847996347866,
    -0.31531760847435325,
    1.1754521905622366,
    -0.47304586939036186
   ],
   "Heavy": [
-   -0.4875540929287484,
+   -0.4875540929287483,
    0.6382281277487319,
    -0.4728139353982253,
    -0.7391758529076209,

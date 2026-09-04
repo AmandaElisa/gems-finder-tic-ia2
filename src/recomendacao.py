@@ -96,7 +96,7 @@ def _genero_visivel(faixa: Mapping[str, Any], procurados: set[str]) -> str:
     lista = [] if crus is None else list(crus)
     if not lista:
         return str(faixa.get("genero", ""))
-    de_verdade = [g for g in lista if g not in artefatos.NAO_DEFINEM_FAMILIA]
+    de_verdade = [g for g in lista if g not in artefatos.nao_definem_familia()]
     da_familia = [g for g in de_verdade if g in procurados]
     for candidatos in (da_familia, de_verdade,
                        [g for g in lista if g in procurados], lista):
@@ -119,7 +119,7 @@ def _marca_de_pertencimento(catalogo: pd.DataFrame,
         # `french` é Indie, ou que uma marcada apenas `chill` é Indie, é
         # inventar informação que o dataset não tem. Ela continua achável pela
         # vibe e pela busca sem filtro de gênero.
-        de_verdade = set(lista) - artefatos.NAO_DEFINEM_FAMILIA
+        de_verdade = set(lista) - artefatos.nao_definem_familia()
         return bool(procurados & de_verdade)
 
     return catalogo["generos"].apply(pertence)
@@ -296,10 +296,19 @@ class Semente(NamedTuple):
     alvo: dict[str, float]
     rotulo: str                        # "Only Love", "blink-182"
     generos: tuple[str, ...] = ()      # gêneros crus; vazio = não estreita
+    # Linhas do catálogo que originaram a semente. Só servem para achar o
+    # vetor aprendido dela em `embeddings()`, que é alinhado por posição.
+    # Uma faixa tem uma linha; um artista tem todas as dele.
+    linhas: tuple[int, ...] = ()
+
+
+# Nível em que a cascata desistiu do gênero: o vocabulário da semente e a
+# família dela vieram vazios, e só resta o universo inteiro.
+SEM_GENERO = 2
 
 
 def _pool_da_semente(base: pd.DataFrame, semente: Semente,
-                     nivel_minimo: int = 0) -> pd.DataFrame:
+                     nivel_minimo: int = 0) -> tuple[pd.DataFrame, int]:
     """Candidatas de uma semente, do vocabulário mais estreito ao mais largo.
 
     A cascata existe porque nem todo gênero deste catálogo tem cauda obscura:
@@ -323,20 +332,65 @@ def _pool_da_semente(base: pd.DataFrame, semente: Semente,
     completa o número é `_completar`.
     """
     if not semente.generos or "generos" not in base.columns:
-        return base
+        # Sem vocabulário para estreitar, a semente já está no nível mais
+        # largo — é o mesmo caso de ter perdido o gênero na cascata.
+        return base, SEM_GENERO
     # Os gêneros DE VERDADE da semente: o Joji vem com `chill` na lista, e
     # procurar por `chill` traz o catálogo inteiro de volta.
-    proprios = set(semente.generos) - artefatos.NAO_DEFINEM_FAMILIA or set(semente.generos)
+    proprios = set(semente.generos) - artefatos.nao_definem_familia() or set(semente.generos)
     niveis = (proprios,
               familias.expandir(sorted({f for g in proprios
                                         if (f := familias.familia_de(g))})))
-    for procurados in niveis[nivel_minimo:]:
+    for passo, procurados in enumerate(niveis[nivel_minimo:], start=nivel_minimo):
         if not procurados:
             continue
         pool = base[_marca_de_pertencimento(base, procurados)]
         if not pool.empty:
-            return pool
-    return base
+            return pool, passo
+    return base, SEM_GENERO
+
+
+def _ordenar_por_vetor(candidatas: pd.DataFrame, sementes: Sequence[Semente]
+                       ) -> tuple[list[int], list[str]] | None:
+    """Afinidade e semente de cada candidata pelo espaço aprendido.
+
+    Devolve None quando não dá para usar — artefato antigo sem
+    `embeddings.npy`, semente sem linha de catálogo, ou catálogo de teste
+    montado à mão. Aí quem chama volta ao caminho por atributos de áudio.
+
+    A similaridade é cosseno, que num espaço de vetores unitários é só
+    produto escalar: uma multiplicação de matriz em numpy, sem scikit-learn.
+    O número exibido é remapeado para a mesma escala 31–99 do `match`, porque
+    o cartão mostra "match" e duas réguas diferentes na mesma coluna
+    confundiriam quem lê.
+    """
+    matriz = artefatos.embeddings()
+    if matriz is None:
+        return None
+    uteis = [s for s in sementes if s.linhas]
+    if not uteis:
+        return None
+    try:
+        alvo = candidatas.index.to_numpy()
+        blocos = matriz[alvo]
+        vetores = []
+        for s in uteis:
+            v = matriz[list(s.linhas)].mean(axis=0)
+            norma = float(np.linalg.norm(v))
+            if norma:
+                vetores.append(v / norma)
+        if not vetores:
+            return None
+        semelhancas = blocos @ np.array(vetores).T     # candidatas x sementes
+    except (IndexError, ValueError):
+        return None
+    melhor = semelhancas.argmax(axis=1)
+    valores = semelhancas.max(axis=1)
+    # Cosseno vive em [-1, 1]; a faixa útil aqui é positiva. 31–99 mantém a
+    # coluna comparável com o resto da tela.
+    notas = [max(31, min(99, round_js(31 + max(0.0, float(v)) * 68)))
+             for v in valores]
+    return notas, [uteis[int(i)].rotulo for i in melhor]
 
 
 def _completar(base: pd.DataFrame, sementes: Sequence[Semente],
@@ -353,21 +407,29 @@ def _completar(base: pd.DataFrame, sementes: Sequence[Semente],
     for nivel in (1, 2):
         if len(escolhidas) >= limite:
             return
-        pools = [_pool_da_semente(base, s, nivel_minimo=nivel)
-                 for s in sementes] if nivel == 1 else [base]
+        pools = ([_pool_da_semente(base, s, nivel_minimo=nivel)[0]
+                  for s in sementes] if nivel == 1 else [base])
         # Desduplica pelo índice, não pelas colunas: `generos` é uma lista, e
         # drop_duplicates não sabe comparar lista.
         candidatas = pd.concat(pools)
         candidatas = candidatas[~candidatas.index.duplicated()]
         if candidatas.empty:
             continue
-        # Cada candidata vale o quanto vale para a semente mais próxima dela.
-        melhores = [max(((match(linha, s.alvo), s.rotulo) for s in sementes),
-                        key=lambda par: par[0])
-                    for _, linha in candidatas.iterrows()]
         candidatas = candidatas.copy()
-        candidatas["match"] = [m for m, _ in melhores]
-        candidatas["semente"] = [r for _, r in melhores]
+        # No nível 2 o gênero acabou: sem ele, cinco atributos de áudio não
+        # separam nada e o resultado é ruído — a semente de forró da Calcinha
+        # Preta devolvia j-idol. O espaço aprendido carrega gênero dentro do
+        # vetor e devolve honky-tonk, que é o análogo musical do forró.
+        por_vetor = _ordenar_por_vetor(candidatas, sementes) if nivel == 2 else None
+        if por_vetor is not None:
+            candidatas["match"], candidatas["semente"] = por_vetor
+        else:
+            # Cada candidata vale o quanto vale para a semente mais próxima.
+            melhores = [max(((match(linha, s.alvo), s.rotulo) for s in sementes),
+                            key=lambda par: par[0])
+                        for _, linha in candidatas.iterrows()]
+            candidatas["match"] = [m for m, _ in melhores]
+            candidatas["semente"] = [r for _, r in melhores]
         for _, linha in candidatas.sort_values(
                 "match", ascending=False, kind="stable").iterrows():
             if len(escolhidas) >= limite:
@@ -405,12 +467,22 @@ def garimpar_por_sementes(base: pd.DataFrame, sementes: Sequence[Semente],
 
     filas: list[list[pd.Series]] = []
     for semente in sementes:
-        pool = _pool_da_semente(base, semente).copy()
+        pool, nivel = _pool_da_semente(base, semente)
+        pool = pool.copy()
         if pool.empty:
             continue
-        pool["match"] = [match(linha, semente.alvo)
-                         for _, linha in pool.iterrows()]
-        pool["semente"] = semente.rotulo
+        # Semente que perdeu o gênero procura no espaço aprendido. É o caso
+        # da Calcinha Preta com teto baixo: forró não tem cauda obscura, e
+        # ranquear o catálogo inteiro por cinco atributos de áudio devolvia
+        # j-idol. O vetor carrega gênero dentro e devolve honky-tonk.
+        por_vetor = (_ordenar_por_vetor(pool, [semente])
+                     if nivel == SEM_GENERO else None)
+        if por_vetor is not None:
+            pool["match"], pool["semente"] = por_vetor
+        else:
+            pool["match"] = [match(linha, semente.alvo)
+                             for _, linha in pool.iterrows()]
+            pool["semente"] = semente.rotulo
         ordenada = pool.sort_values("match", ascending=False, kind="stable")
         filas.append([linha for _, linha in ordenada.head(limite).iterrows()])
 
@@ -626,7 +698,7 @@ def perfil_do_usuario(catalogo: pd.DataFrame,
 def sementes_de_faixas(faixas: pd.DataFrame) -> tuple[Semente, ...]:
     """Uma semente por faixa do catálogo — o vetor e os gêneros de cada uma."""
     saida: list[Semente] = []
-    for _, linha in faixas.iterrows():
+    for indice, linha in faixas.iterrows():
         generos = tuple(linha["generos"]) if "generos" in faixas.columns else ()
         # Nome e artista: só o nome obriga a pessoa a adivinhar de qual faixa
         # dela veio a recomendação — "Manchete dos Jornais" não diz Calcinha
@@ -635,7 +707,7 @@ def sementes_de_faixas(faixas: pd.DataFrame) -> tuple[Semente, ...]:
                    if "artista" in faixas.columns else "")
         rotulo = f"{linha['faixa']} ({artista})" if artista else str(linha["faixa"])
         saida.append(Semente({a: float(linha[a]) for a in ATRIBUTOS},
-                             rotulo, generos))
+                             rotulo, generos, (int(indice),)))
     return tuple(saida)
 
 
@@ -657,8 +729,9 @@ def sementes_de_artistas(catalogo: pd.DataFrame, artistas: pd.DataFrame,
                 nome, regex=False, na=False)]
             generos = tuple(sorted({g for lista in dele["generos"]
                                     for g in lista}))
+        linhas = tuple(int(i) for i in dele.index) if "generos" in catalogo.columns else ()
         saida.append(Semente({a: float(linha[a]) for a in ATRIBUTOS},
-                             nome, generos))
+                             nome, generos, linhas))
     return tuple(saida)
 
 

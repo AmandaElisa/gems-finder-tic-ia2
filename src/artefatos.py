@@ -125,8 +125,18 @@ NAO_SAO_GENEROS = {"piano", "guitar", "chill", "sad", "happy", "study",
 # A distinção é semântica e não está na estatística.
 SO_NACIONALIDADE = {"french", "british", "german", "swedish"}
 
-# Nenhuma das duas decide a que família uma faixa pertence.
-NAO_DEFINEM_FAMILIA = NAO_SAO_GENEROS | SO_NACIONALIDADE
+# Cópia local, usada só quando o artefato é antigo demais para trazer a lista.
+# A fonte de verdade é o notebook: as etiquetas são retiradas das famílias lá,
+# na mesma célula que as documenta, e exportadas em `modelo.json`. Manter a
+# decisão em dois lugares foi exatamente o que deixou `german` fora da busca
+# mas ainda listado dentro da família Rock.
+_PADRAO_NAO_DEFINEM = NAO_SAO_GENEROS | SO_NACIONALIDADE
+
+
+def nao_definem_familia() -> frozenset[str]:
+    """Etiquetas que não colocam uma faixa em família nenhuma."""
+    doc = modelo().get("nao_definem_familia")
+    return frozenset(doc) if doc else frozenset(_PADRAO_NAO_DEFINEM)
 
 
 def _rotulo_de_genero(generos: Any) -> str:
@@ -277,3 +287,32 @@ def _chave(nome: str) -> str:
     sem_acento = (unicodedata.normalize("NFD", nome)
                   .encode("ascii", "ignore").decode())
     return sem_acento.lower()
+
+
+@lru_cache(maxsize=1)
+def embeddings() -> "np.ndarray | None":
+    """Os vetores de faixa, alinhados linha a linha com `catalogo()`.
+
+    Cada linha junta os cinco atributos de áudio padronizados às dimensões
+    latentes que o TruncatedSVD extraiu da matriz de gêneros, com os dois
+    blocos normalizados e ponderados. Como todo vetor é unitário, similaridade
+    de cosseno vira produto escalar, e o app faz isso só com numpy — o
+    scikit-learn treina no notebook e não volta para produção.
+
+    Devolve None se o arquivo não existir, em vez de estourar: o embedding
+    melhora o último nível da cascata de busca, e a cascata funciona sem ele.
+    Um artefato antigo continua servindo o app inteiro.
+    """
+    import numpy as np
+
+    caminho = pasta() / "embeddings.npy"
+    if not caminho.exists():
+        return None
+    matriz = np.load(caminho)
+    if len(matriz) != len(catalogo()):
+        raise ValueError(
+            f"embeddings.npy tem {len(matriz)} linhas e o catálogo tem "
+            f"{len(catalogo())}. Os dois vêm da mesma execução do notebook; "
+            "reexporte os artefatos."
+        )
+    return matriz

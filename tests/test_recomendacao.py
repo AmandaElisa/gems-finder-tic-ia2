@@ -229,6 +229,38 @@ class TestGarimparPorSementes:
         assert {"match", "semente"} <= set(achadas.columns)
 
 
+class TestEspacoAprendido:
+    """O último nível da cascata usa o vetor aprendido, quando ele existe.
+
+    É o único lugar onde as regras não têm resposta: sem gênero disponível,
+    cinco atributos de áudio não separam nada. Medido no notebook, a semente
+    de forró que devolvia j-idol passa a devolver honky-tonk.
+    """
+
+    def test_falls_back_to_audio_when_there_is_no_artifact(self) -> None:
+        # Catálogo montado à mão não tem embedding nenhum, e o garimpo tem
+        # que continuar funcionando: o vetor melhora um nível, não é
+        # requisito do app.
+        base = catalog(
+            {**track(popularidade=5), "faixa": "A", "artista": "X",
+             "generos": ["punk"]},
+            {**track(popularidade=5), "faixa": "B", "artista": "Y",
+             "generos": ["folk"]},
+        )
+        achadas = garimpar_por_sementes(
+            base, [seed("s", "genero-inexistente")], teto=30, limite=8)
+        assert len(achadas) == 2
+        assert achadas["match"].notna().all()
+
+    def test_a_seed_without_catalogue_rows_does_not_break_it(self) -> None:
+        # Semente construída à mão não carrega `linhas`; o caminho por vetor
+        # tem que recusar em silêncio em vez de estourar IndexError.
+        from src.recomendacao import _ordenar_por_vetor
+
+        assert _ordenar_por_vetor(catalog({**track(), "faixa": "A"}),
+                                  [seed("sem linhas", "punk")]) is None
+
+
 class TestMediaDeVetores:
     def test_averages_each_attribute_independently(self) -> None:
         um = {atributo: .2 for atributo in ATRIBUTOS}
