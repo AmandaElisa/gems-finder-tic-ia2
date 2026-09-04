@@ -86,18 +86,25 @@ e a energia mediana dessas 157 é 0,001. Imputadas pela mediana do gênero.
 menos instrumental (0,189 → 0,032).
 
 Slide 8 — A descoberta que sustenta o projeto (com GRÁFICO DE BARRAS
-HORIZONTAIS)
+HORIZONTAIS — os dados da célula 58 do notebook, "Correlação de cada
+atributo COM A POPULARIDADE"; não confundir com o heatmap da célula 57, que
+cruza os atributos entre si)
 Título: "Áudio não prevê popularidade".
-Correlação de cada atributo com popularidade, o maior |r| é 0,128.
+Correlação de cada atributo com a popularidade: o maior |r| é 0,128
+(instrumentalness), e todos os outros ficam abaixo de 0,08.
 Legenda em destaque: "Se o som explicasse o sucesso, não haveria joia
 escondida. Como não explica, existe música tão boa quanto os hits e
 desconhecida — e é exatamente o que o produto busca."
 
-Slide 9 — Seleção de features (com TABELA)
+Slide 9 — Seleção de features (com o HEATMAP de correlação ENTRE OS
+ATRIBUTOS, célula 57 do notebook — é ele que mostra a redundância)
 Sete técnicas de filtro aplicadas: Variance Threshold, MAD, Dispersion
 Ratio, Pearson, Chi-quadrado, Cramér's V, Information Gain e Fisher Score.
-Resultado: 5 atributos de 8. Dois cartões de destaque:
-- `loudness` descartado por redundância com `energy` (r ≈ 0,76)
+As 5 variáveis adotadas — acousticness, energy, instrumentalness, valence e
+danceability — são exatamente as 5 primeiras do placar consolidado de rank
+médio. Dois cartões de destaque:
+- `loudness` descartado por redundância com `energy` (r = +0,76 no heatmap;
+  energy x acousticness = -0,73 é o segundo par mais forte)
 - `speechiness` cai do 2º para o 8º lugar no Fisher Score quando a limpeza
   vem ANTES da seleção — a ordem das etapas mudou a conclusão
 
@@ -165,7 +172,12 @@ escrito.
 | Uma linha por `track_id` | 89.740 |
 | Catálogo musical (`e_musica`) | 88.945 |
 
-### Slide 8 — Correlação com popularidade
+### Slide 8 — Correlação **com a popularidade** (célula 58)
+
+> Este é o gráfico que responde "o som prevê o sucesso?". O heatmap da célula
+> 57 responde outra pergunta — "quais variáveis são redundantes entre si?" — e
+> lá o maior valor é 0,759. Os dois números estão certos; são medidas
+> diferentes.
 
 | Atributo | r |
 |---|---|
@@ -192,6 +204,16 @@ escrito.
 | 8 | 0,263 | 1,182 | 30.406 | 131.066 |
 
 Queda da inércia: K=4→5 reduz 17,3%; K=5→6 reduz apenas 9,4% (o joelho).
+
+### Slide 9 — Correlação **entre os atributos** (célula 57), pares fortes
+
+| Par | r |
+|---|---|
+| energy × loudness | +0,759 |
+| energy × acousticness | −0,733 |
+| acousticness × loudness | −0,583 |
+| danceability × valence | +0,490 |
+| instrumentalness × loudness | −0,430 |
 
 ### Slide 11 — Perfil dos cinco moods (centroides medidos)
 

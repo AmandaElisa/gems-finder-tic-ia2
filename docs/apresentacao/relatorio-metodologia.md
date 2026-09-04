@@ -103,9 +103,13 @@ empiricamente, e não fixada a priori.
 
 Dois resultados merecem registro por terem alterado decisões de projeto:
 
-- **`loudness` foi descartado por redundância** com `energy` (r ≈ 0,76).
+- **`loudness` foi descartado por redundância** com `energy` (r = +0,759).
   Embora apresente bom desempenho individual (Fisher = 0,855), não acrescenta
-  informação ao vetor.
+  informação ao vetor. Convém distinguir as duas matrizes de correlação
+  analisadas, que respondem perguntas diferentes: entre os atributos, os pares
+  mais fortes são `energy × loudness` (+0,759) e `energy × acousticness`
+  (−0,733), e é o que fundamenta o descarte; **contra a popularidade**, o maior
+  valor observado é |r| = 0,128, resultado tratado adiante.
 - **A ordem das etapas mudou a conclusão.** Com o catálogo completo,
   `speechiness` ocupava a 2ª posição de 14 no Fisher Score (0,906). Após a
   remoção do conteúdo falado — *podcasts*, *stand-up* e audiolivros
