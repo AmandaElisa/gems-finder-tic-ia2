@@ -285,9 +285,14 @@ def garimpar(base: pd.DataFrame, alvo: Mapping[str, float], teto: int,
 
 
 # Quantos pontos de match ainda contam como "praticamente empatado". Medido:
-# no universo da vibe Aconchego, 102 faixas cabem em três pontos, espalhadas
-# por 30 gêneros.
-EMPATE_TECNICO = 3
+# no universo da vibe Aconchego, 102 faixas cabem em três pontos e 208 em
+# quatro, espalhadas por dezenas de gêneros. Cinco atende também o garimpo
+# por artista, onde o pool é menor: com catálogo largo (David Guetta, Bad
+# Bunny) as 16 primeiras diferem em 4 pontos, então sortear entre elas é
+# honesto. Com pool curto (Kim Petras, 23 faixas) a faixa de empate fica
+# pequena sozinha, e o garimpo continua determinístico — o que é correto:
+# variar ali seria mostrar faixa 20 pontos pior só para parecer variado.
+EMPATE_TECNICO = 5
 
 
 def _diversificar(ordenada: pd.DataFrame, limite: int,
@@ -331,9 +336,15 @@ def _diversificar(ordenada: pd.DataFrame, limite: int,
         generos_usados.add(genero)
         escolhidas.append(indice)
 
-    # Faltou gênero distinto? completa pela ordem de afinidade.
+    # Faltou gênero distinto? completa — primeiro com o resto das empatadas,
+    # que já estão sorteadas, e só depois descendo na nota. Completar pela
+    # ordem original desfazia o sorteio justamente onde ele mais importa: um
+    # artista com poucos gêneros no catálogo caía sempre nas mesmas oito.
     if len(escolhidas) < limite:
-        restantes = [i for i in ordenada.index if i not in set(escolhidas)]
+        ja = set(escolhidas)
+        restantes = ([i for i in empatadas.index if i not in ja]
+                     + [i for i in ordenada.index
+                        if i not in ja and i not in set(empatadas.index)])
         escolhidas += restantes[:limite - len(escolhidas)]
     return ordenada.loc[escolhidas]
 
@@ -503,7 +514,8 @@ def _vazio_com_semente(base: pd.DataFrame) -> pd.DataFrame:
 
 
 def garimpar_por_sementes(base: pd.DataFrame, sementes: Sequence[Semente],
-                          teto: int, limite: int = 8) -> pd.DataFrame:
+                          teto: int, limite: int = 8,
+                          variar: bool = False) -> pd.DataFrame:
     """Vizinhos de cada semente, intercalados — não vizinhos da média delas.
 
     Cada semente procura no próprio vocabulário e ranqueia por afinidade com o
@@ -539,7 +551,11 @@ def garimpar_por_sementes(base: pd.DataFrame, sementes: Sequence[Semente],
                              for _, linha in pool.iterrows()]
             pool["semente"] = semente.rotulo
         ordenada = pool.sort_values("match", ascending=False, kind="stable")
-        filas.append([linha for _, linha in ordenada.head(limite).iterrows()])
+        # Cada semente também escolhe entre empatadas por variedade e por
+        # sorteio: sem isto, garimpar duas vezes com o mesmo artista devolvia
+        # exatamente as mesmas joias.
+        escolha = _diversificar(ordenada, limite, variar)
+        filas.append([linha for _, linha in escolha.iterrows()])
 
     # Rodízio: a melhor de cada semente, depois a segunda melhor de cada.
     escolhidas: list[pd.Series] = []
@@ -668,8 +684,8 @@ def montar_resultado(catalogo: pd.DataFrame, artistas: pd.DataFrame,
     # Sem artista escolhido não há semente e a busca segue como sempre foi —
     # vibe é a média medida de um cluster, então ali o centroide é honesto.
     sementes = sementes_de_artistas(catalogo, artistas, favoritos)
-    achadas = (garimpar_por_sementes(base, sementes, teto) if sementes
-               else garimpar(base, alvo, teto, variar=True))
+    achadas = (garimpar_por_sementes(base, sementes, teto, variar=True)
+               if sementes else garimpar(base, alvo, teto, variar=True))
     if not achadas.empty and "generos" in achadas.columns:
         procurados = familias.expandir(generos) if generos else set()
         achadas = achadas.copy()
@@ -838,7 +854,8 @@ def montar_resultado_conta(catalogo: pd.DataFrame,
     # Com faixas cruzadas, cada uma procura no próprio território. Sem elas
     # (perfil por gênero ou de exemplo) só resta o centroide.
     if perfil.sementes:
-        achadas = garimpar_por_sementes(catalogo, perfil.sementes, TETO_CONTA)
+        achadas = garimpar_por_sementes(catalogo, perfil.sementes, TETO_CONTA,
+                                        variar=True)
         ctx = "ela é vizinha de uma das suas mais ouvidas"
     else:
         achadas = garimpar(catalogo, perfil.alvo, TETO_CONTA)
