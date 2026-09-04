@@ -214,6 +214,10 @@ def artistas() -> pd.DataFrame:
     com o mesmo DNA sonoro. Por isso aqui só entram consolidados.
     """
     tabela = pd.read_parquet(_exigir(pasta() / "artistas.parquet"))
+    # "Consolidado" passou a significar artista de parada (pop_max >= 65), e
+    # não mais qualquer um acima de 50 — o que melhora justamente este
+    # seletor: ele existe para a pessoa escolher quem JÁ conhece, e antes
+    # oferecia nomes de pop_max 50 que ninguém reconheceria.
     cons = tabela[(tabela["status"] == "Consolidado")
                   & (tabela["n_faixas"] >= MINIMO_DE_FAIXAS)]
 

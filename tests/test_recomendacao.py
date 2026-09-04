@@ -35,6 +35,7 @@ from src.recomendacao import (
     texto_status,
     universo,
 )
+from src import artefatos
 from src.tema import LIMA, PERI, ROSA
 
 # The five audio attributes at dead centre, so a test can move one at a time.
@@ -249,10 +250,10 @@ class TestGostoDeRaridade:
         return gosto_de_raridade(self.CATALOGO, ouvidas)
 
     @pytest.mark.parametrize("mediana, selo", [
-        (10, "Garimpeiro de raridade"),   # abaixo do 1º quartil (22)
-        (30, "Fora do óbvio"),            # entre 22 e 37
-        (45, "Um pé no mainstream"),      # entre 37 e 50
-        (80, "Fã de hits"),               # acima do 3º quartil (50)
+        (10, "Garimpeiro de raridade"),   # <= 20, o mesmo limite de "Joia bruta"
+        (30, "Fora do óbvio"),            # entre 20 e 45
+        (60, "Um pé no mainstream"),      # entre 45 e 65: Beatles, Arctic Monkeys
+        (80, "Fã de hits"),               # acima de 65: Adele, Dua Lipa
     ])
     def test_each_quartile_gets_its_own_label(self, mediana: int, selo: str) -> None:
         leitura = self.ler(*[mediana] * 5)
@@ -264,6 +265,11 @@ class TestGostoDeRaridade:
         # Quatro faixas escondidas e um hit: a mediana segue escondida.
         leitura = self.ler(8, 9, 10, 11, 95)
         assert leitura is not None and leitura.popularidade == 10
+
+    def test_fifty_is_not_a_hit_in_this_dataset(self) -> None:
+        # Popularidade 50 é lado-B de Linkin Park e gospel de igreja, não hit.
+        # O corte antigo (quartil 75 do catálogo) rotulava isso "Fã de hits".
+        assert self.ler(*[50] * 5).selo == "Um pé no mainstream"
 
     def test_popularity_zero_is_missing_data_not_obscurity(self) -> None:
         # Zero significa "não capturado". Contá-lo entregaria um selo de
@@ -409,8 +415,12 @@ class TestUniversoComFamilias:
     def test_a_family_name_expands_to_its_genres(self) -> None:
         from src import generos
 
-        assert generos.expandir("MPB e bossa nova") == {"mpb", "brazil"}
+        # `brazil` saiu da família: é etiqueta de origem, e 45% do universo
+        # "MPB e bossa nova" entrava só por ela — gospel, r-n-b e reggae
+        # brasileiros, nenhum deles MPB.
+        assert generos.expandir("MPB e bossa nova") == {"mpb"}
         assert generos.expandir("Samba e pagode") == {"samba", "pagode"}
+        assert "brazil" in artefatos.nao_definem_familia()
 
     def test_a_raw_genre_passes_through_unchanged(self) -> None:
         from src import generos
@@ -580,36 +590,37 @@ class TestMontarResultado:
 
 
 class TestRar:
-    # Os limites são os quartis da popularidade das faixas elegíveis até 50,
-    # então as quatro bandas têm tamanho parecido. Os antigos 8 e 17 vinham de
-    # um slider que ia só até 40.
+    # Os limites são os quartis da popularidade do pool elegível — 21/32/43,
+    # recalibrados quando o status do artista virou três faixas e o pool
+    # passou de 35.899 para 58.612. Com os antigos 20/27/36 a banda de cima
+    # cobria de 37 a 65, metade do alcance do slider num selo só.
     @pytest.mark.parametrize("popularidade, selo", [
         (3, "Joia bruta"),
-        (20, "Joia bruta"),        # limite
-        (21, "Rara"),
-        (27, "Rara"),             # limite
-        (28, "Pouco ouvida"),
-        (36, "Pouco ouvida"),     # limite
-        (37, "Em ascensão"),
-        (50, "Em ascensão"),
+        (21, "Joia bruta"),       # limite
+        (22, "Rara"),
+        (32, "Rara"),             # limite
+        (33, "Pouco ouvida"),
+        (43, "Pouco ouvida"),     # limite
+        (44, "Em ascensão"),
+        (65, "Em ascensão"),      # topo do slider
     ])
     def test_boundaries(self, popularidade: int, selo: str) -> None:
         assert rar(popularidade)[0] == selo
 
     def test_every_band_has_its_own_colour(self) -> None:
-        cores = {rar(p)[1] for p in (3, 21, 28, 37)}
+        cores = {rar(p)[1] for p in (3, 22, 33, 44)}
         assert len(cores) == 4
 
 class TestRotuloProfundidade:
     @pytest.mark.parametrize("teto, esperado", [
         (5, "Praticamente invisível"),
-        (20, "Praticamente invisível"),  # limite
-        (21, "Bem underground"),
-        (27, "Bem underground"),         # limite
-        (28, "Conhecida em nicho"),
-        (36, "Conhecida em nicho"),      # limite
-        (37, "Começando a aparecer"),
-        (50, "Começando a aparecer"),
+        (21, "Praticamente invisível"),  # limite
+        (22, "Bem underground"),
+        (32, "Bem underground"),         # limite
+        (33, "Conhecida em nicho"),
+        (43, "Conhecida em nicho"),      # limite
+        (44, "Começando a aparecer"),
+        (65, "Começando a aparecer"),    # topo do slider
     ])
     def test_boundaries(self, teto: int, esperado: str) -> None:
         assert rotulo_profundidade(teto) == esperado

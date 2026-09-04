@@ -1,6 +1,6 @@
 {
- "versao": "5ae9b3533e7c",
- "treinado_em": "2026-09-04T01:02:33+00:00",
+ "versao": "a45afd323377",
+ "treinado_em": "2026-09-04T12:52:45+00:00",
  "faixas_no_treino": 88945,
  "familias_de_genero": {
   "Rock": [
@@ -64,7 +64,7 @@
    "synth-pop",
    "trip-hop"
   ],
-  "Hip-hop e soul": [
+  "Rap, hip-hop e soul": [
    "hip-hop",
    "r-n-b",
    "soul",
@@ -79,14 +79,12 @@
    "latino",
    "reggaeton",
    "salsa",
-   "spanish",
    "tango",
    "reggae",
    "dancehall"
   ],
   "MPB e bossa nova": [
-   "mpb",
-   "brazil"
+   "mpb"
   ],
   "Samba e pagode": [
    "samba",
@@ -135,6 +133,7 @@
   ]
  },
  "nao_definem_familia": [
+  "brazil",
   "british",
   "chill",
   "club",
@@ -148,6 +147,7 @@
   "romance",
   "sad",
   "sleep",
+  "spanish",
   "study",
   "swedish",
   "world-music"
@@ -174,7 +174,8 @@
  },
  "piso_popularidade": 2,
  "teto_faixa_obscura": 16.0,
- "teto_artista_consolidado": 50,
+ "teto_artista_conhecido": 40,
+ "teto_artista_consolidado": 65,
  "scaler_media": [
   0.5625135330822418,
   0.6337577486828939,
@@ -207,12 +208,12 @@
   "Foco": [
    -1.0758613149578544,
    -1.698313370874885,
-   -1.0045750594804252,
-   1.576184029013512,
-   2.06941971796658
+   -1.004575059480425,
+   1.5761840290135118,
+   2.0694197179665794
   ],
   "Aconchego": [
-   -0.2779486976726273,
+   -0.27794869767262725,
    -1.0217847996347866,
    -0.31531760847435325,
    1.1754521905622366,

@@ -218,14 +218,16 @@ def texto_status(vibes: Sequence[str], generos: Sequence[str],
     return f"Buscando por {descricao}, com popularidade até <b>{teto}</b>."
 
 
-# Limites das faixas de raridade: são os quartis da popularidade das faixas
-# elegíveis até 50, então as quatro bandas têm tamanho parecido (28% / 24% /
-# 24% / 25%). Os antigos 8 e 17 foram calibrados para um slider que ia até 40
-# e deixavam a banda de cima com metade do catálogo.
+# Limites das faixas de raridade: os quartis da popularidade do pool elegível,
+# então as quatro bandas têm tamanho parecido. Recalibrados quando o
+# `status_artista` virou três faixas e o pool elegível passou de 35.899 para
+# 58.612 — com 20/27/36 a banda de cima passou a cobrir de 37 a 65, metade do
+# alcance do slider num selo só. Os 8/17 originais vinham de um slider que ia
+# até 40.
 BANDAS_DE_RARIDADE: tuple[tuple[int, str, str], ...] = (
-    (20, "Joia bruta", LIMA),
-    (27, "Rara", ROSA),
-    (36, "Pouco ouvida", PERI),
+    (21, "Joia bruta", LIMA),
+    (32, "Rara", ROSA),
+    (43, "Pouco ouvida", PERI),
 )
 SELO_MAIS_ALTO = ("Em ascensão", CREME)
 
@@ -834,10 +836,24 @@ def _centroide_dos_generos(catalogo: pd.DataFrame,
     return media(faixas), tuple(sorted(procurados & presentes))
 
 
-# Quartis da popularidade do catálogo, ignorando as faixas em 0 — que são
-# dado não capturado, não música sem ouvintes. São os limites do selo, e vêm
-# da forma do catálogo em vez de números redondos que alguém escolheu.
-QUARTIS_DE_POPULARIDADE = (22, 37, 50)
+# Limites do selo, ancorados em RECONHECIBILIDADE e não nos quartis do
+# catálogo. A primeira versão usava os quartis (22, 37, 50) com o argumento de
+# que vinham da forma do catálogo em vez de números redondos — e o argumento
+# era errado: este catálogo tem ~1000 faixas por gênero e é enviesado para
+# baixo de propósito, então o percentil 75 dele não é "hit" em lugar nenhum.
+#
+# Medido, olhando quem de fato mora em cada patamar:
+#
+#   48–52   Glee Cast, Bethel Music, lado-B de Linkin Park   não é hit
+#   58–62   The Beatles, Arctic Monkeys, BTS                 conhecido
+#   68–72   BTS, Beatles, The Neighbourhood                  mainstream
+#   78–82   Adele, Ariana Grande, Dua Lipa, Bad Bunny        hit de verdade
+#
+# 21 embaixo porque é o mesmo limite de `BANDAS_DE_RARIDADE`, onde o produto
+# já chama uma faixa de "Joia bruta" — o selo do perfil e o selo do cartão
+# passam a usar a mesma definição de escondido. 65 em cima porque é onde
+# começa o território de quem qualquer um reconhece.
+QUARTIS_DE_POPULARIDADE = (21, 45, 65)
 
 # Do mais escondido ao mais conhecido, na ordem dos quartis acima. O selo
 # descreve as FAIXAS, não a pessoa: com oito faixas cruzadas de cinquenta,

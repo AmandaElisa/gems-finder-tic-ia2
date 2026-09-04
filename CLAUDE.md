@@ -20,15 +20,25 @@ Tests: `pip install -r requirements-dev.txt && pytest`
 
 ## Read this before touching data or metrics
 
-The catalogue is **simulated** — 32 fictional tracks in `src/dados.py`. No
-external CSV, no credentials.
+The catalogue is **real**: 89.740 deduplicated tracks in `data/processed/`,
+exported by `notebook/Grupo_9_Sound_Hunters.ipynb`. The app never trains —
+it loads artifacts and reads parameters, so scikit-learn is not a runtime
+dependency. `src/dados.py` keeps product constants, not data; the only
+fiction left there is the staged login of a visitor who never connects, and
+the screen labels that case as an example.
 
-Spotify OAuth, `/me/top/tracks` and playlist creation are real. Audio
-attributes never are: Spotify deprecated `/v1/audio-features` on 2024-11-27,
-so attributes always come from our dataset, never from the API. `PRECISAO_8`
-in `src/dados.py` is a placeholder; `cobertura` is computed for real. The
-route from simulated to real data is specified in
-`docs/specs/2026-08-30-real-model-integration/spec.md`.
+**Every number on screen is measured, or it is not shown.** `Precisão @8` was
+removed rather than relabelled: it displayed 91% under a caption claiming
+user tests that never happened. It returns when an evaluation protocol
+exists. `cobertura`, the match and the rarity badge are all computed.
+
+Two platform walls shape the product, both documented in the README with
+sources. Spotify deprecated `/v1/audio-features` on 2024-11-27, so audio
+attributes NEVER come from the API — a connected user's profile is built by
+crossing their most-played tracks against our catalogue by `track_id`. And
+apps in Development Mode may read but not write, so playlist creation returns
+403; it stays implemented on purpose, with the restriction explained on
+screen.
 
 ## The three tracks
 
@@ -68,7 +78,7 @@ opportunistically.
 `data`, `model`, `docs`, `test`, `orchestration`.
 
 **Modules.** One responsibility, stable interfaces. `src/ui/estilo.py` is the
-largest file in the repo at 280 lines. Roughly 300 is the ceiling, not the
+largest file in the UI layer at ~300 lines. Roughly 300 is the ceiling, not the
 target.
 
 **Tests.** `src/recomendacao.py` carries tests — it decides which gem a user
@@ -79,8 +89,10 @@ skill), not by mocking widgets.
 
     app.py                   routing between Descobrir and Minha conta
     src/tema.py              palette, mirrors the prototype's :root
-    src/dados.py             simulated catalogue and product constants
+    src/dados.py             product constants (the catalogue lives in data/processed/)
     src/recomendacao.py      match, garimpo, metrics — the tested core
+    src/artefatos.py         the boundary: loads the notebook's artifacts
+    src/generos.py           genre families, read from the model
     src/spotify.py           real OAuth and Web API calls
     src/ui/                  visual layer: estilo, mascote, componentes,
                              estado, sidebar, resultados, descobrir, conta
